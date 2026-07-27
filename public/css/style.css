@@ -900,6 +900,7 @@ body {
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
+  width: 100%;
 }
 
 .chip-btn:hover {
@@ -944,9 +945,13 @@ textarea:focus {
   overflow-x: auto;
 }
 
+.tab-label-short {
+  display: none;
+}
+
 .out-tab {
   flex: 1;
-  min-width: 100px;
+  min-width: 90px;
   padding: 12px 10px;
   border: none;
   background: transparent;
@@ -956,6 +961,7 @@ textarea:focus {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  text-align: center;
 }
 
 .out-tab.active {
@@ -1250,30 +1256,66 @@ textarea:focus {
   .hide-mobile { display: none !important; }
   .hamburger-btn { display: flex !important; }
 
-  .hero-section { padding: 36px 0 32px; }
-  .hero-section h1 { font-size: 28px; letter-spacing: -0.5px; margin-bottom: 14px; }
-  .hero-subheading { font-size: 15px; margin-bottom: 24px; }
+  .hero-section { padding: 32px 0 28px; }
+  .hero-section h1 { font-size: 26px; letter-spacing: -0.5px; margin-bottom: 12px; }
+  .hero-subheading { font-size: 14px; margin-bottom: 20px; }
   
   .hero-cta-group { flex-direction: column; width: 100%; }
   .btn-hero { width: 100%; justify-content: center; }
 
-  .devices-grid { grid-template-columns: 1fr; gap: 32px; }
+  .devices-grid { grid-template-columns: 1fr; gap: 28px; }
 
-  .section { padding: 40px 0; }
-  .section-title { margin-bottom: 28px; }
-  .section-title h2 { font-size: 24px; }
+  .section { padding: 36px 0; }
+  .section-title { margin-bottom: 24px; }
+  .section-title h2 { font-size: 22px; }
 
-  .demo-layout { grid-template-columns: 1fr; gap: 20px; }
+  .demo-layout { grid-template-columns: 1fr; gap: 16px; }
+  .demo-controls { padding: 16px; }
+
+  /* Output Tabs Mobile Responsive Fix */
+  .output-nav {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+  }
+
+  .tab-label-full { display: none; }
+  .tab-label-short { display: inline; }
+
+  .out-tab {
+    flex: 1;
+    min-width: 65px;
+    font-size: 11px;
+    padding: 8px 6px;
+    border-bottom: none;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .out-tab.active {
+    background: var(--ibm-blue);
+    color: #ffffff;
+  }
+
+  /* Output Body Clearance for Floating Chat Icon */
+  .output-body {
+    padding: 16px;
+    padding-bottom: 76px;
+  }
+
   .handoff-columns, .crm-grid { grid-template-columns: 1fr; }
   .crm-item.full-width { grid-column: span 1; }
 
-  .callout-content { flex-direction: column; text-align: center; }
-  .callout-action { margin-top: 6px; }
+  .chat-callout-banner { padding: 14px 16px; margin-bottom: 20px; }
+  .callout-content { flex-direction: column; text-align: center; gap: 8px; }
 
-  .architecture-flow { flex-direction: column; gap: 12px; }
+  .architecture-flow { flex-direction: column; gap: 10px; }
   .arch-box { width: 100%; }
   .arch-connector { transform: rotate(90deg); margin: -4px 0; }
 
-  .cta-banner { padding: 32px 18px; }
-  .cta-banner h2 { font-size: 22px; }
+  .cta-banner { padding: 28px 16px; }
+  .cta-banner h2 { font-size: 20px; }
 }

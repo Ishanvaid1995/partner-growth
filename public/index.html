@@ -282,11 +282,11 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <div class="callout-text">
-            <strong>Prefer a Conversational Experience?</strong>
-            <p>Click the chat launcher in the bottom-right corner to speak directly with <strong>IBM watsonx Assistant</strong>.</p>
+            <strong>Prefer Conversational Chat?</strong>
+            <p>Speak directly with <strong>IBM watsonx Assistant</strong> in the lower-right corner.</p>
           </div>
           <div class="callout-action">
-            <span class="btn-text">Open Assistant Chat ➔</span>
+            <span class="btn-text">Open Chat Assistant ➔</span>
           </div>
         </div>
       </div>
@@ -325,10 +325,22 @@
         <div class="demo-outputs">
           <div class="output-card">
             <div class="output-nav">
-              <button class="out-tab active" onclick="switchOutputTab('proposal')">Proposal</button>
-              <button class="out-tab" onclick="switchOutputTab('email')">Follow-Up Email</button>
-              <button class="out-tab" onclick="switchOutputTab('handoff')">Technical Handoff</button>
-              <button class="out-tab" onclick="switchOutputTab('opportunity')">CRM Opportunity</button>
+              <button class="out-tab active" onclick="switchOutputTab('proposal')">
+                <span class="tab-label-full">Solution Proposal</span>
+                <span class="tab-label-short">Proposal</span>
+              </button>
+              <button class="out-tab" onclick="switchOutputTab('email')">
+                <span class="tab-label-full">Follow-Up Email</span>
+                <span class="tab-label-short">Email</span>
+              </button>
+              <button class="out-tab" onclick="switchOutputTab('handoff')">
+                <span class="tab-label-full">Technical Handoff</span>
+                <span class="tab-label-short">Handoff</span>
+              </button>
+              <button class="out-tab" onclick="switchOutputTab('opportunity')">
+                <span class="tab-label-full">CRM Opportunity</span>
+                <span class="tab-label-short">CRM</span>
+              </button>
             </div>
 
             <div class="output-body">
@@ -341,7 +353,7 @@
               <div id="out-proposal" class="out-pane active">
                 <div class="pane-header-bar">
                   <h4 id="resSolutionName">IBM Solution Proposal Blueprint</h4>
-                  <span class="badge-sm" id="resModelTag">meta-llama/llama-3-3-70b-instruct</span>
+                  <span class="badge-sm" id="resModelTag">Llama-3.3-70b</span>
                 </div>
                 <div class="meta-strip">
                   <div><strong>Stack:</strong> <span id="resStack">-</span></div>
