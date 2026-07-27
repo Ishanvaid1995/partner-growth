@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://partner-growth-copilot.<region>.codeengine.appdomain.cloud",
+      "url": "https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud",
       "description": "IBM Cloud Code Engine Production URL"
     },
     {
