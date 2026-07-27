@@ -42,7 +42,6 @@ app.get('/', (req: Request, res: Response) => {
         createHandoffSummary: 'POST /create-handoff-summary',
         createOpportunityStub: 'POST /create-opportunity-stub',
       },
-      documentation: 'https://github.com/Ishanvaid1995/partner-growth',
     });
   }
 });
