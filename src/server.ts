@@ -9,6 +9,19 @@ export const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
+// Root route for web browser test checks
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    service: 'partner-growth-copilot',
+    status: 'online',
+    endpoints: {
+      health: 'GET /health',
+      generateProposal: 'POST /generate-proposal',
+    },
+    documentation: 'https://github.com/Ishanvaid1995/partner-growth',
+  });
+});
+
 // Health check endpoint (Public for probes / load balancers)
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'partner-growth-copilot' });

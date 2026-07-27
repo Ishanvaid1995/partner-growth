@@ -17,6 +17,13 @@ describe('POST /generate-proposal', () => {
     jest.clearAllMocks();
   });
 
+  it('should return 200 OK and service status info on GET /', async () => {
+    const response = await request(app).get('/').expect(200);
+
+    expect(response.body).toHaveProperty('service', 'partner-growth-copilot');
+    expect(response.body).toHaveProperty('status', 'online');
+  });
+
   it('should return 401 Unauthorized when X-PGC-KEY header is missing', async () => {
     const response = await request(app)
       .post('/generate-proposal')
