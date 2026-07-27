@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
 import healthRoutes from './routes/healthRoutes';
 import proposalRoutes from './routes/proposalRoutes';
@@ -12,8 +13,11 @@ export const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-// Serve static frontend landing page & interactive demo app
-const publicDir = path.join(__dirname, '../public');
+// Bulletproof public directory resolution for both dev (ts-node) and prod (dist)
+const publicDir = fs.existsSync(path.join(__dirname, '../public'))
+  ? path.join(__dirname, '../public')
+  : path.join(process.cwd(), 'public');
+
 app.use(express.static(publicDir));
 
 // Mount Modular API Routes

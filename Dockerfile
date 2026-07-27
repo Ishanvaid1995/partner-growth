@@ -21,6 +21,8 @@ ENV PORT=3000
 COPY package*.json ./
 RUN npm ci --only=production
 
+# Copy static frontend assets & compiled dist
+COPY public ./public
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
