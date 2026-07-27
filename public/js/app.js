@@ -1,3 +1,17 @@
+// Global reference for IBM watsonx Assistant web chat instance
+window.watsonAssistantChatInstance = null;
+
+// Mobile Side Drawer Toggle
+function toggleMobileMenu() {
+  const drawer = document.getElementById('mobileDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+
+  if (drawer && overlay) {
+    drawer.classList.toggle('active');
+    overlay.classList.toggle('active');
+  }
+}
+
 // Sample Prompt Scenarios
 const promptScenarios = {
   retail: "Customer: Acme Retail; Industry: Retail & E-Commerce; Use case: AI analytics for customer personalization and real-time inventory prediction; Budget: $100,000 USD; Timeline: Q4.",
@@ -11,17 +25,49 @@ function applyPrompt(key) {
   }
 }
 
+/**
+ * Bulletproof trigger to open the IBM watsonx Assistant web chat window.
+ */
 function triggerChatOrScroll() {
-  // If watsonx Assistant web chat instance exists, open it directly
-  if (window.watsonAssistantChatInstance) {
+  // 1. Try native instance method
+  if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
     window.watsonAssistantChatInstance.openWindow();
-  } else {
-    // Otherwise smoothly scroll to the demo section
-    const demoSec = document.getElementById('demo');
-    if (demoSec) {
-      demoSec.scrollIntoView({ behavior: 'smooth' });
-    }
+    return;
   }
+
+  // 2. Fallback: Search for IBM Web Chat launcher DOM button and click it
+  const domLauncher = 
+    document.querySelector('#WACLauncher__Button') ||
+    document.querySelector('button[aria-label*="chat" i]') ||
+    document.querySelector('.WACLauncherContainer button') ||
+    document.querySelector('[data-testid="web-chat-launcher"]') ||
+    document.querySelector('.WACLauncher__Button');
+
+  if (domLauncher) {
+    domLauncher.click();
+    return;
+  }
+
+  // 3. If still initializing, retry short interval
+  let retries = 0;
+  const interval = setInterval(() => {
+    retries++;
+    if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
+      window.watsonAssistantChatInstance.openWindow();
+      clearInterval(interval);
+    } else {
+      const btn = document.querySelector('#WACLauncher__Button') || document.querySelector('button[aria-label*="chat" i]');
+      if (btn) {
+        btn.click();
+        clearInterval(interval);
+      } else if (retries >= 10) {
+        clearInterval(interval);
+        // If not loaded at all, scroll to playground
+        const demoSec = document.getElementById('demo');
+        if (demoSec) demoSec.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, 200);
 }
 
 function switchOutputTab(tabName) {
@@ -170,14 +216,6 @@ async function executeWorkflow() {
     loader.classList.add('hidden');
   }
 }
-
-// Hook into watsonx Assistant instance on load
-window.watsonAssistantChatOptions = window.watsonAssistantChatOptions || {};
-const origOnLoad = window.watsonAssistantChatOptions.onLoad;
-window.watsonAssistantChatOptions.onLoad = async (instance) => {
-  window.watsonAssistantChatInstance = instance;
-  if (origOnLoad) await origOnLoad(instance);
-};
 
 // Default prompt scenario on page load
 window.addEventListener('DOMContentLoaded', () => {

@@ -11,24 +11,52 @@
 </head>
 <body>
 
-  <!-- 1. Header -->
+  <!-- 1. Header with Mobile Hamburger -->
   <header class="navbar">
     <div class="nav-container">
       <a href="#" class="brand">
         <span class="app-name">Partner Growth Copilot</span>
-        <span class="badge">IBM Partner Platform</span>
+        <span class="badge hide-mobile">IBM Partner Platform</span>
       </a>
+
+      <!-- Desktop Navigation Links -->
       <nav class="nav-links">
         <a href="#product">Product</a>
         <a href="#how-it-works">Workflow</a>
         <a href="#demo">Demo</a>
         <a href="#architecture">Architecture</a>
       </nav>
-      <div class="nav-cta">
-        <button class="btn btn-nav" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
+
+      <div class="nav-actions">
+        <button class="btn btn-nav hide-mobile" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
+        <!-- Mobile Hamburger Toggle Button -->
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle Navigation">
+          <svg class="icon-menu" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg class="icon-close hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Side Drawer -->
+  <div class="mobile-drawer-overlay" id="drawerOverlay" onclick="toggleMobileMenu()"></div>
+  <aside class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-header">
+      <span class="drawer-title">Partner Growth Copilot</span>
+      <button class="drawer-close-btn" onclick="toggleMobileMenu()">✕</button>
+    </div>
+    <nav class="drawer-nav">
+      <a href="#product" onclick="toggleMobileMenu()">Product Overview</a>
+      <a href="#how-it-works" onclick="toggleMobileMenu()">3-Step Workflow</a>
+      <a href="#demo" onclick="toggleMobileMenu()">Interactive Demo</a>
+      <a href="#architecture" onclick="toggleMobileMenu()">System Architecture</a>
+    </nav>
+    <div class="drawer-footer">
+      <button class="btn btn-primary btn-full" onclick="toggleMobileMenu(); triggerChatOrScroll();">
+        Launch Chat Assistant
+      </button>
+    </div>
+  </aside>
 
   <!-- 2. Hero Section -->
   <section id="product" class="hero-section">
@@ -40,11 +68,11 @@
           Partner Growth Copilot helps channel teams capture customer needs, generate IBM-aligned recommendations, and prepare follow-up and handoff materials through a guided AI workflow.
         </p>
         <div class="hero-cta-group">
-          <button class="btn btn-primary" onclick="triggerChatOrScroll()">
+          <button class="btn btn-primary btn-hero" onclick="triggerChatOrScroll()">
             <span>Start Live Conversation</span>
             <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
-          <a href="#demo" class="btn btn-secondary">Explore Demo Playground</a>
+          <a href="#demo" class="btn btn-secondary btn-hero">Explore Demo Playground</a>
         </div>
       </div>
 
@@ -57,8 +85,8 @@
               <span class="dot yellow"></span>
               <span class="dot green"></span>
             </div>
-            <span class="window-title">Partner Growth Copilot — Live Pre-Sales Artifacts</span>
-            <span class="status-indicator"><span class="pulse"></span> System Operational</span>
+            <span class="window-title">Pre-Sales Live Artifacts</span>
+            <span class="status-indicator"><span class="pulse"></span> Operational</span>
           </div>
           <div class="panel-grid">
             <div class="preview-card">
@@ -159,14 +187,13 @@
 
       <!-- High-Emphasis Chat Callout Banner -->
       <div class="chat-callout-banner" onclick="triggerChatOrScroll()">
-        <div class="callout-glow"></div>
         <div class="callout-content">
           <div class="callout-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <div class="callout-text">
             <strong>Prefer a Conversational Experience?</strong>
-            <p>Click the interactive chat launcher in the bottom-right corner to speak directly with <strong>IBM watsonx Assistant</strong>.</p>
+            <p>Click the chat launcher in the bottom-right corner to speak directly with <strong>IBM watsonx Assistant</strong>.</p>
           </div>
           <div class="callout-action">
             <span class="btn-text">Open Assistant Chat ➔</span>
@@ -194,7 +221,7 @@
 
           <div class="input-box-wrapper">
             <label for="dealInput" class="input-label">Customer Deal Context:</label>
-            <textarea id="dealInput" rows="5" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
+            <textarea id="dealInput" rows="4" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
           </div>
 
           <!-- Hidden API Key Input field (prefilled silently) -->
@@ -411,7 +438,10 @@
       integrationID: "8d8e078f-38e5-40d5-9fe8-8c1826dcd9e3",
       region: "https://integrations.us-east.assistant.watson.appdomain.cloud",
       serviceInstanceID: "c99244a6-92c6-45c3-88f5-895264f00d92",
-      onLoad: async (instance) => { await instance.render(); }
+      onLoad: async (instance) => {
+        window.watsonAssistantChatInstance = instance;
+        await instance.render();
+      }
     };
     setTimeout(function(){
       const t=document.createElement('script');
