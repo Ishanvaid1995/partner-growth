@@ -1,0 +1,146 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Partner Growth Copilot API",
+    "description": "Secured REST API custom extension for IBM watsonx Assistant to generate IBM-centric solution proposals using IBM watsonx.ai runtime models.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://partner-growth-copilot.<region>.codeengine.appdomain.cloud",
+      "description": "IBM Cloud Code Engine Production URL"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/generate-proposal": {
+      "post": {
+        "summary": "Generate IBM Solution Proposal",
+        "description": "Accepts deal context input from watsonx Assistant or client application, queries IBM watsonx.ai Granite/Llama models, and returns a structured solution proposal.",
+        "operationId": "generateProposal",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string",
+                    "description": "Customer and deal context details captured by watsonx Assistant (max 8000 chars).",
+                    "example": "Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposal generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "proposal"
+                  ],
+                  "properties": {
+                    "proposal": {
+                      "type": "string",
+                      "description": "Generated multi-paragraph IBM-centric solution proposal text.",
+                      "example": "### Overview\nAcme Retail can leverage IBM watsonx to optimize AI analytics...\n\n### Architecture summary\nIntegration of watsonx.data with watsonx.ai for real-time analytics...\n\n### Key IBM components\n- IBM watsonx.ai\n- IBM watsonx Orchestrate\n- IBM Cloud Pak for Data\n\n### Business benefits\nAccelerated decision-making and reduced compute costs...\n\n### Next steps\nSchedule initial architecture design session with IBM channel technical lead."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing, non-string, or overly long raw_input field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "raw_input is required and must be a reasonable-length string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid X-PGC-KEY header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Failed to generate proposal via watsonx.ai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Failed to generate proposal"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-PGC-KEY",
+        "description": "API Key authentication header matching PGC_API_KEY environment variable"
+      }
+    }
+  }
+}
