@@ -20,7 +20,7 @@
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-  --shadow-panel: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
+  --shadow-panel: 0 16px 40px -6px rgba(0, 0, 0, 0.1);
   
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -83,22 +83,17 @@ body {
   text-decoration: none;
 }
 
+.brand-symbol {
+  color: var(--ibm-blue);
+  display: flex;
+  align-items: center;
+}
+
 .app-name {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.3px;
-  white-space: nowrap;
-}
-
-.badge {
-  background: var(--ibm-blue-light);
-  color: var(--ibm-blue);
-  border: 1px solid var(--ibm-blue-border);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
   white-space: nowrap;
 }
 
@@ -187,16 +182,10 @@ body {
   margin-bottom: 24px;
 }
 
-.drawer-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
 .drawer-close-btn {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -348,134 +337,354 @@ body {
   flex-wrap: wrap;
 }
 
-/* Hero Panel Mockup */
-.hero-panel {
+/* MacBook Pro Hardware Frame Mockup */
+.macbook-mockup-wrapper {
   width: 100%;
-  max-width: 1000px;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-.panel-window {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+.macbook-frame {
+  position: relative;
+  background: #1e293b;
+  border-radius: 16px 16px 0 0;
+  padding: 12px 12px 0 12px;
   box-shadow: var(--shadow-panel);
-  overflow: hidden;
 }
 
-.panel-header {
-  background: var(--bg-subtle);
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-subtle);
+.macbook-screen {
+  background: var(--bg-surface);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.screen-bar {
+  background: #0f172a;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
-.window-dots {
+.mac-dots {
   display: flex;
   gap: 6px;
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
+.mac-dot {
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
+.mac-dot.close { background: #ff5f56; }
+.mac-dot.minimize { background: #ffbd2e; }
+.mac-dot.expand { background: #27c93f; }
 
-.dot.red { background: #ff5f56; }
-.dot.yellow { background: #ffbd2e; }
-.dot.green { background: #27c93f; }
-
-.window-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-indicator {
+.mac-url {
+  background: #1e293b;
+  color: #94a3b8;
   font-size: 11px;
-  color: #10b981;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
+  font-family: var(--font-mono);
+  padding: 3px 12px;
+  border-radius: 12px;
+  flex: 1;
+  max-width: 400px;
+  text-align: center;
 }
 
-.pulse {
-  width: 7px;
-  height: 7px;
-  background: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  animation: pulse-ring 1.8s infinite;
-}
-
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-.panel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  padding: 20px;
-}
-
-.preview-card {
+.screen-content {
   background: var(--bg-subtle);
+  padding: 24px;
+}
+
+.mock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.mock-card {
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.card-tag {
-  font-size: 11px;
+.mock-card.accent {
+  border-color: var(--ibm-blue-border);
+}
+
+.mock-tag {
+  font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
   color: var(--ibm-blue);
-  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-.preview-card h4 {
-  font-size: 15px;
+.mock-card h5 {
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-main);
 }
 
-.preview-card p {
-  font-size: 13px;
+.mock-card p {
+  font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
-.card-footer {
-  margin-top: auto;
-  padding-top: 12px;
+.mock-pills {
   display: flex;
   gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
 }
 
-.chip {
-  background: var(--bg-surface);
+.mock-pills span {
+  background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
   color: var(--text-muted);
 }
 
-/* 3. Stack Strip */
+.macbook-base {
+  background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+  height: 16px;
+  border-radius: 0 0 16px 16px;
+  position: relative;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.macbook-notch {
+  width: 120px;
+  height: 6px;
+  background: #1e293b;
+  margin: 0 auto;
+  border-radius: 0 0 6px 6px;
+}
+
+/* 3. Mobile & Web Multi-Device Showcase Section */
+.devices-section {
+  padding: 64px 0;
+}
+
+.devices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.device-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.device-header h3 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.device-header p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* iPhone 15 Pro Hardware Frame */
+.iphone-mockup {
+  display: flex;
+  justify-content: center;
+}
+
+.iphone-hardware {
+  width: 290px;
+  height: 520px;
+  background: #0f172a;
+  border: 10px solid #1e293b;
+  border-radius: 44px;
+  position: relative;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.iphone-notch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.dynamic-island {
+  width: 84px;
+  height: 20px;
+  background: #000000;
+  border-radius: 12px;
+}
+
+.iphone-screen {
+  background: var(--bg-surface);
+  height: 100%;
+  padding-top: 38px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-mockup-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-main);
+}
+
+.chat-header {
+  background: var(--bg-surface);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.agent-avatar {
+  background: var(--ibm-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.agent-status {
+  font-size: 10px;
+  color: #10b981;
+}
+
+.chat-messages {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.msg {
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 8px 12px;
+  border-radius: 14px;
+  max-width: 85%;
+}
+
+.msg-bot {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  color: var(--text-main);
+}
+
+.msg-user {
+  background: var(--ibm-blue);
+  color: #ffffff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-card {
+  background: var(--ibm-blue-light);
+  border: 1px solid var(--ibm-blue-border);
+  padding: 10px;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+
+.msg-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ibm-blue);
+  margin-bottom: 2px;
+}
+
+.msg-card-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Workspace Card */
+.workspace-preview-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.w-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ibm-blue);
+  background: var(--ibm-blue-light);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.w-header h4 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.w-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.w-features li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.w-icon {
+  font-size: 18px;
+}
+
+.w-features strong {
+  font-size: 14px;
+  display: block;
+}
+
+.w-features p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 4. Stack Strip */
 .stack-strip-section {
   padding: 10px 0 32px;
 }
@@ -506,19 +715,12 @@ body {
 }
 
 .strip-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.strip-item svg {
-  color: var(--ibm-blue);
-}
-
-/* 4. Section Common */
+/* 5. Section Common */
 .section {
   padding: 56px 0;
 }
@@ -591,7 +793,7 @@ body {
   color: var(--text-secondary);
 }
 
-/* 5. Live Demo Section & Chat Callout Banner */
+/* 6. Live Demo Section & Chat Callout Banner */
 .demo-section {
   background: var(--bg-subtle);
   border-top: 1px solid var(--border-subtle);
@@ -914,46 +1116,6 @@ textarea:focus {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* 6. Outcomes Section */
-.outcomes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
-
-.outcome-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 28px 20px;
-  box-shadow: var(--shadow-card);
-}
-
-.card-badge {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--ibm-blue);
-  background: var(--ibm-blue-light);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-}
-
-.outcome-card h3 {
-  font-size: 17px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.outcome-card p {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
 /* 7. Architecture Section */
 .architecture-section {
   background: var(--bg-subtle);
@@ -1083,8 +1245,10 @@ textarea:focus {
    MOBILE & TABLET RESPONSIVE OVERRIDES
    ========================================== */
 @media (max-width: 768px) {
+  /* HIDE DESKTOP NAV LINKS & SHOW HAMBURGER BUTTON */
+  .nav-links { display: none !important; }
   .hide-mobile { display: none !important; }
-  .hamburger-btn { display: flex; }
+  .hamburger-btn { display: flex !important; }
 
   .hero-section { padding: 36px 0 32px; }
   .hero-section h1 { font-size: 28px; letter-spacing: -0.5px; margin-bottom: 14px; }
@@ -1092,6 +1256,8 @@ textarea:focus {
   
   .hero-cta-group { flex-direction: column; width: 100%; }
   .btn-hero { width: 100%; justify-content: center; }
+
+  .devices-grid { grid-template-columns: 1fr; gap: 32px; }
 
   .section { padding: 40px 0; }
   .section-title { margin-bottom: 28px; }

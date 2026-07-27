@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Partner Growth Copilot — Enterprise Pre-Sales AI Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,24 +15,26 @@
   <header class="navbar">
     <div class="nav-container">
       <a href="#" class="brand">
+        <span class="brand-symbol">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </span>
         <span class="app-name">Partner Growth Copilot</span>
-        <span class="badge hide-mobile">IBM Partner Platform</span>
       </a>
 
       <!-- Desktop Navigation Links -->
       <nav class="nav-links">
         <a href="#product">Product</a>
+        <a href="#devices">Mobile &amp; Web</a>
         <a href="#how-it-works">Workflow</a>
         <a href="#demo">Demo</a>
         <a href="#architecture">Architecture</a>
       </nav>
 
       <div class="nav-actions">
-        <button class="btn btn-nav hide-mobile" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
+        <button class="btn btn-nav hide-mobile" onclick="triggerChatOrScroll()">Launch Assistant</button>
         <!-- Mobile Hamburger Toggle Button -->
-        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle Navigation">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle Menu">
           <svg class="icon-menu" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-          <svg class="icon-close hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
     </div>
@@ -42,14 +44,17 @@
   <div class="mobile-drawer-overlay" id="drawerOverlay" onclick="toggleMobileMenu()"></div>
   <aside class="mobile-drawer" id="mobileDrawer">
     <div class="drawer-header">
-      <span class="drawer-title">Partner Growth Copilot</span>
+      <div class="brand">
+        <span class="app-name">Partner Growth</span>
+      </div>
       <button class="drawer-close-btn" onclick="toggleMobileMenu()">✕</button>
     </div>
     <nav class="drawer-nav">
       <a href="#product" onclick="toggleMobileMenu()">Product Overview</a>
+      <a href="#devices" onclick="toggleMobileMenu()">Mobile &amp; Web Experience</a>
       <a href="#how-it-works" onclick="toggleMobileMenu()">3-Step Workflow</a>
       <a href="#demo" onclick="toggleMobileMenu()">Interactive Demo</a>
-      <a href="#architecture" onclick="toggleMobileMenu()">System Architecture</a>
+      <a href="#architecture" onclick="toggleMobileMenu()">Architecture</a>
     </nav>
     <div class="drawer-footer">
       <button class="btn btn-primary btn-full" onclick="toggleMobileMenu(); triggerChatOrScroll();">
@@ -62,127 +67,212 @@
   <section id="product" class="hero-section">
     <div class="container hero-container">
       <div class="hero-header">
-        <span class="tag">IBM Ecosystem Pre-Sales Automation</span>
+        <span class="tag">IBM Enterprise Partner Platform</span>
         <h1>Turn partner discovery into an IBM-ready proposal in minutes.</h1>
         <p class="hero-subheading">
-          Partner Growth Copilot helps channel teams capture customer needs, generate IBM-aligned recommendations, and prepare follow-up and handoff materials through a guided AI workflow.
+          Pre-sales automation agent powered by <strong>IBM watsonx.ai</strong> and <strong>watsonx Assistant</strong>.
         </p>
         <div class="hero-cta-group">
           <button class="btn btn-primary btn-hero" onclick="triggerChatOrScroll()">
-            <span>Start Live Conversation</span>
+            <span>Launch Chat Assistant</span>
             <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
-          <a href="#demo" class="btn btn-secondary btn-hero">Explore Demo Playground</a>
+          <a href="#demo" class="btn btn-secondary btn-hero">Try Demo Playground</a>
         </div>
       </div>
 
-      <!-- Hero Visual Panel Mockup -->
-      <div class="hero-panel">
-        <div class="panel-window">
-          <div class="panel-header">
-            <div class="window-dots">
-              <span class="dot red"></span>
-              <span class="dot yellow"></span>
-              <span class="dot green"></span>
+      <!-- High-Quality MacBook Pro Hardware Mockup -->
+      <div class="macbook-mockup-wrapper">
+        <div class="macbook-frame">
+          <div class="macbook-screen">
+            <div class="screen-bar">
+              <div class="mac-dots">
+                <span class="mac-dot close"></span>
+                <span class="mac-dot minimize"></span>
+                <span class="mac-dot expand"></span>
+              </div>
+              <div class="mac-url">partner-growth.codeengine.appdomain.cloud</div>
             </div>
-            <span class="window-title">Pre-Sales Live Artifacts</span>
-            <span class="status-indicator"><span class="pulse"></span> Operational</span>
+            <div class="screen-content">
+              <div class="mock-grid">
+                <div class="mock-card accent">
+                  <div class="mock-tag">01. Proposal Blueprint</div>
+                  <h5>IBM watsonx Retail AI Analytics</h5>
+                  <p>Architecture featuring watsonx.ai, watsonx Orchestrate, and watsonx.data to optimize retail inventory prediction.</p>
+                  <div class="mock-pills">
+                    <span>watsonx.ai</span>
+                    <span>watsonx.data</span>
+                  </div>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-tag">02. Executive Email</div>
+                  <h5>Customer Follow-Up Draft</h5>
+                  <p>"Dear Acme Retail team, Thank you for sharing your Q4 objectives. Attached is our proposed IBM watsonx architecture..."</p>
+                  <div class="mock-pills">
+                    <span>Executive Ready</span>
+                  </div>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-tag">03. Technical Handoff</div>
+                  <h5>Engineering Delivery Scope</h5>
+                  <p>Scope, implementation next steps, data connector prerequisites, and IAM security compliance checks.</p>
+                  <div class="mock-pills">
+                    <span>Engineering Scope</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="panel-grid">
-            <div class="preview-card">
-              <div class="card-tag">01. Proposal Blueprint</div>
-              <h4>IBM watsonx Retail AI Analytics</h4>
-              <p>Architecture featuring watsonx.ai, watsonx Orchestrate, and watsonx.data to optimize retail inventory prediction.</p>
-              <div class="card-footer">
-                <span class="chip">watsonx.ai</span>
-                <span class="chip">watsonx.data</span>
-              </div>
-            </div>
-            <div class="preview-card">
-              <div class="card-tag">02. Executive Email</div>
-              <h4>Follow-up: Solution Overview</h4>
-              <p>"Dear Acme Retail team, Thank you for sharing your Q4 objectives. Attached is our proposed IBM watsonx architecture..."</p>
-              <div class="card-footer">
-                <span class="chip">Executive Ready</span>
-              </div>
-            </div>
-            <div class="preview-card">
-              <div class="card-tag">03. Technical Handoff</div>
-              <h4>Internal Implementation Scope</h4>
-              <p>Engineering scope, next steps, data connector prerequisites, and network security compliance checks.</p>
-              <div class="card-footer">
-                <span class="chip">Engineering Scope</span>
-              </div>
-            </div>
+          <div class="macbook-base">
+            <div class="macbook-notch"></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 3. Trust / Stack Strip -->
+  <!-- 3. Mobile & Web Multi-Device Showcase Section -->
+  <section id="devices" class="section devices-section">
+    <div class="container">
+      <div class="section-title">
+        <span class="sub-tag">Seamless Experience</span>
+        <h2>Built for Web &amp; Mobile Pre-Sales</h2>
+        <p>Run consultative deal discovery on desktop or engage clients directly on mobile via watsonx Assistant.</p>
+      </div>
+
+      <div class="devices-grid">
+        <!-- iPhone 15 Pro Mobile Mockup -->
+        <div class="device-col">
+          <div class="device-header">
+            <h3>Conversational Mobile Agent</h3>
+            <p>On-the-go natural language intake powered by watsonx Assistant.</p>
+          </div>
+          
+          <div class="iphone-mockup">
+            <div class="iphone-hardware">
+              <div class="iphone-notch">
+                <div class="dynamic-island"></div>
+              </div>
+              <div class="iphone-screen">
+                <div class="chat-mockup-app">
+                  <div class="chat-header">
+                    <div class="agent-avatar">IBM</div>
+                    <div>
+                      <div class="agent-name">Partner Growth Copilot</div>
+                      <div class="agent-status">watsonx Assistant • Online</div>
+                    </div>
+                  </div>
+                  <div class="chat-messages">
+                    <div class="msg msg-bot">
+                      Hello! Tell me about your customer deal (industry, use case, budget, timeline).
+                    </div>
+                    <div class="msg msg-user">
+                      Acme Retail needs AI analytics for inventory prediction with a $100k budget in Q4.
+                    </div>
+                    <div class="msg msg-bot">
+                      Generating IBM solution proposal blueprint and executive follow-up email...
+                    </div>
+                    <div class="msg msg-card">
+                      <div class="msg-card-title">Solution Proposal Generated</div>
+                      <div class="msg-card-desc">IBM watsonx Retail Analytics (watsonx.ai + watsonx.data)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MacBook Web Workspace Card -->
+        <div class="device-col">
+          <div class="device-header">
+            <h3>Desktop Pre-Sales Workspace</h3>
+            <p>Comprehensive multi-artifact pre-sales generation and CRM pipeline logging.</p>
+          </div>
+          
+          <div class="workspace-preview-card">
+            <div class="w-header">
+              <span class="w-badge">OpenAPI 3.0 Tools</span>
+              <h4>Automated Multi-Artifact Output</h4>
+            </div>
+            <ul class="w-features">
+              <li>
+                <div class="w-icon">⚡</div>
+                <div>
+                  <strong>IBM Solution Proposal</strong>
+                  <p>Formulates a complete 5-section proposal matching client budget and timeline.</p>
+                </div>
+              </li>
+              <li>
+                <div class="w-icon">✉️</div>
+                <div>
+                  <strong>Executive Customer Email</strong>
+                  <p>Drafts customer follow-up emails ready for 1-click clipboard copy.</p>
+                </div>
+              </li>
+              <li>
+                <div class="w-icon">🛠️</div>
+                <div>
+                  <strong>Technical Handoff &amp; CRM Payload</strong>
+                  <p>Creates delivery action items, risk assessments, and Salesforce/HubSpot stubs.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Trust / Stack Strip -->
   <section class="stack-strip-section">
     <div class="container">
       <div class="stack-strip">
-        <span class="strip-label">Powered by IBM AI Technology:</span>
+        <span class="strip-label">Powered by IBM AI Stack:</span>
         <div class="strip-items">
-          <span class="strip-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            IBM watsonx Assistant
-          </span>
-          <span class="strip-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
-            watsonx Orchestrate <small>(Ready)</small>
-          </span>
-          <span class="strip-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            IBM watsonx.ai
-          </span>
-          <span class="strip-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            IBM Cloud Code Engine
-          </span>
+          <span class="strip-item">IBM watsonx Assistant</span>
+          <span class="strip-item">watsonx Orchestrate <small>(Ready)</small></span>
+          <span class="strip-item">IBM watsonx.ai</span>
+          <span class="strip-item">IBM Cloud Code Engine</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 4. How It Works (3 Steps Only) -->
+  <!-- 5. How It Works (3 Steps) -->
   <section id="how-it-works" class="section how-it-works-section">
     <div class="container">
       <div class="section-title">
         <span class="sub-tag">Workflow</span>
-        <h2>Three simple steps to proposal delivery</h2>
-        <p>From initial customer conversation to complete pre-sales documentation.</p>
+        <h2>Three Simple Steps to Proposal Delivery</h2>
       </div>
 
       <div class="steps-grid">
         <div class="step-card">
           <div class="step-number">01</div>
-          <h3>Capture customer needs</h3>
-          <p>Channel reps enter deal context in natural language via watsonx Assistant web chat or the live playground.</p>
+          <h3>Capture Customer Needs</h3>
+          <p>Enter deal context in natural language via watsonx Assistant web chat or playground.</p>
         </div>
         <div class="step-card">
           <div class="step-number">02</div>
-          <h3>Generate IBM recommendation</h3>
-          <p>watsonx.ai analyzes requirements and formulates an IBM-aligned solution architecture, component stack, and outcomes.</p>
+          <h3>watsonx.ai Reasoning</h3>
+          <p>Llama 3.3 70B formulates an IBM solution architecture, component stack, and business outcomes.</p>
         </div>
         <div class="step-card">
           <div class="step-number">03</div>
-          <h3>Deliver proposal &amp; handoff</h3>
-          <p>Instantly outputs a customer proposal, follow-up email, technical handoff summary, and CRM opportunity stub.</p>
+          <h3>Deliver Multi-Artifacts</h3>
+          <p>Outputs proposal blueprint, executive email, technical handoff, and CRM opportunity stub.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 5. Live Demo Section -->
+  <!-- 6. Live Interactive Demo Section -->
   <section id="demo" class="section demo-section">
     <div class="container">
       <div class="section-title">
         <span class="sub-tag">Interactive Agent</span>
-        <h2>Experience the Copilot Live</h2>
-        <p>Select a sample prompt or enter custom deal requirements to run the workflow.</p>
+        <h2>Try the Copilot Live</h2>
       </div>
 
       <!-- High-Emphasis Chat Callout Banner -->
@@ -202,7 +292,7 @@
       </div>
 
       <div class="demo-layout">
-        <!-- Left Column: Prompts & Input -->
+        <!-- Left Column: Controls -->
         <div class="demo-controls">
           <div class="prompt-chips-container">
             <label class="input-label">Select a Sample Deal Scenario:</label>
@@ -224,7 +314,6 @@
             <textarea id="dealInput" rows="4" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
           </div>
 
-          <!-- Hidden API Key Input field (prefilled silently) -->
           <input type="hidden" id="apiKeyInput" value="pgc-secret-key-123">
 
           <button id="runWorkflowBtn" class="btn btn-primary btn-full" onclick="executeWorkflow()">
@@ -334,42 +423,12 @@
     </div>
   </section>
 
-  <!-- 6. Business Outcomes -->
-  <section class="section outcomes-section">
-    <div class="container">
-      <div class="section-title">
-        <span class="sub-tag">Impact</span>
-        <h2>Designed for channel speed and accuracy</h2>
-        <p>Deliver enterprise pre-sales materials without taking days of technical effort.</p>
-      </div>
-
-      <div class="outcomes-grid">
-        <div class="outcome-card">
-          <div class="card-badge">01</div>
-          <h3>Instant Proposal Generation</h3>
-          <p>Formulates a complete 5-section IBM solution proposal matching customer budget and timeline in seconds.</p>
-        </div>
-        <div class="outcome-card">
-          <div class="card-badge">02</div>
-          <h3>Executive Customer Communication</h3>
-          <p>Drafts polished, customer-facing follow-up emails that summarize value drivers and accelerate decision cycles.</p>
-        </div>
-        <div class="outcome-card">
-          <div class="card-badge">03</div>
-          <h3>Structured Technical Handoff</h3>
-          <p>Creates clear delivery scope, engineering action items, and risk assessments for technical implementation teams.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- 7. Architecture Section -->
   <section id="architecture" class="section architecture-section">
     <div class="container">
       <div class="section-title">
         <span class="sub-tag">System Architecture</span>
         <h2>End-to-End IBM Agentic Stack</h2>
-        <p>Clean, modular architecture connecting conversational front-ends to foundation AI models.</p>
       </div>
 
       <div class="architecture-flow">
@@ -412,7 +471,7 @@
       <div class="cta-banner">
         <h2>Show judges an AI agent that does the work, not just talks about it.</h2>
         <p>Experience automated partner pre-sales powered by IBM watsonx.</p>
-        <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Live Conversation</button>
+        <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
       </div>
     </div>
   </section>
