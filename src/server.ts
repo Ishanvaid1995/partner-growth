@@ -1,73 +1,44 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { apiKeyAuth } from './middleware/auth';
-import { proposalRateLimiter } from './middleware/rateLimiter';
-import { watsonxClient } from './watsonxClient';
+import path from 'path';
+import healthRoutes from './routes/healthRoutes';
+import proposalRoutes from './routes/proposalRoutes';
+import emailRoutes from './routes/emailRoutes';
+import handoffRoutes from './routes/handoffRoutes';
+import opportunityRoutes from './routes/opportunityRoutes';
 
 export const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-// Root route for web browser test checks
-app.get('/', (_req: Request, res: Response) => {
-  res.status(200).json({
-    service: 'partner-growth-copilot',
-    status: 'online',
-    endpoints: {
-      health: 'GET /health',
-      generateProposal: 'POST /generate-proposal',
-    },
-    documentation: 'https://github.com/Ishanvaid1995/partner-growth',
-  });
-});
+// Serve static frontend landing page & interactive demo app
+const publicDir = path.join(__dirname, '../public');
+app.use(express.static(publicDir));
 
-// Health check endpoint (Public for probes / load balancers)
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', service: 'partner-growth-copilot' });
-});
+// Mount Modular API Routes
+app.use('/', healthRoutes);
+app.use('/', proposalRoutes);
+app.use('/', emailRoutes);
+app.use('/', handoffRoutes);
+app.use('/', opportunityRoutes);
 
-/**
- * POST /generate-proposal
- * Protected endpoint consumed by IBM watsonx Assistant custom extension.
- */
-app.post(
-  '/generate-proposal',
-  proposalRateLimiter,
-  apiKeyAuth,
-  async (req: Request, res: Response): Promise<void> => {
-    const { raw_input } = req.body || {};
-
-    // Validate raw_input presence, type, and reasonable string length (<= 8000 chars)
-    if (
-      !raw_input ||
-      typeof raw_input !== 'string' ||
-      raw_input.trim().length === 0 ||
-      raw_input.length > 8000
-    ) {
-      res
-        .status(400)
-        .json({ error: 'raw_input is required and must be a reasonable-length string' });
-      return;
-    }
-
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const trimmedInput = raw_input.trim();
-
-    // Safe audit logging: Log metadata only, never leak full deal context text
-    console.log('[Audit Log]', {
-      timestamp: new Date().toISOString(),
-      clientIp,
-      inputLength: trimmedInput.length,
+// Fallback GET / for static index.html or JSON info if requested with Accept header
+app.get('/', (req: Request, res: Response) => {
+  if (req.accepts('html')) {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  } else {
+    res.status(200).json({
+      service: 'partner-growth-copilot',
+      status: 'online',
+      endpoints: {
+        health: 'GET /health',
+        generateProposal: 'POST /generate-proposal',
+        draftFollowupEmail: 'POST /draft-followup-email',
+        createHandoffSummary: 'POST /create-handoff-summary',
+        createOpportunityStub: 'POST /create-opportunity-stub',
+      },
+      documentation: 'https://github.com/Ishanvaid1995/partner-growth',
     });
-
-    try {
-      const proposal = await watsonxClient.generateProposal(trimmedInput);
-      res.status(200).json({ proposal });
-    } catch (err: any) {
-      // Log server-side error without leaking credentials
-      console.error('[POST /generate-proposal] Error:', err?.message || err);
-      res.status(500).json({ error: 'Failed to generate proposal' });
-    }
   }
-);
+});

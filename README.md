@@ -214,7 +214,7 @@ Follow these steps to connect your deployed Code Engine application to **IBM wat
 
 ---
 
-## 💡 IBM + Ingram Micro Competition Impact
+## 💡 IBM Partner Ecosystem Impact
 
 `partner-growth` provides automated end-to-end enablement for channel partners:
 1. **Intake**: watsonx Assistant captures deal context from partner reps or customers.

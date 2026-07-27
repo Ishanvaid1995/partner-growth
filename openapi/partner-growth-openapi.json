@@ -1,18 +1,14 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.3",
   "info": {
     "title": "Partner Growth Copilot API",
-    "description": "Secured REST API custom extension for IBM watsonx Assistant to generate IBM-centric solution proposals using IBM watsonx.ai runtime models.",
+    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai.",
     "version": "1.0.0"
   },
   "servers": [
     {
       "url": "https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud",
-      "description": "IBM Cloud Code Engine Production URL"
-    },
-    {
-      "url": "http://localhost:3000",
-      "description": "Local Development Server"
+      "description": "IBM Cloud Code Engine Production Server"
     }
   ],
   "security": [
@@ -21,16 +17,45 @@
     }
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "summary": "Check Service Health",
+        "description": "Returns operational status of Partner Growth Copilot. Use this tool to verify service readiness.",
+        "operationId": "health_check",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy and operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "partner-growth-copilot"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/generate-proposal": {
       "post": {
         "summary": "Generate IBM Solution Proposal",
-        "description": "Accepts deal context input from watsonx Assistant or client application, queries IBM watsonx.ai Granite/Llama models, and returns a structured solution proposal.",
-        "operationId": "generateProposal",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
+        "description": "Analyzes customer requirements and deal context to generate an IBM-centric solution proposal, including recommended IBM stack, architecture summary, and key business outcomes.",
+        "operationId": "generate_proposal",
         "requestBody": {
           "required": true,
           "content": {
@@ -43,7 +68,7 @@
                 "properties": {
                   "raw_input": {
                     "type": "string",
-                    "description": "Customer and deal context details captured by watsonx Assistant (max 8000 chars).",
+                    "description": "Raw customer requirements, industry, use case, budget, and timeline details.",
                     "example": "Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."
                   }
                 }
@@ -53,19 +78,35 @@
         },
         "responses": {
           "200": {
-            "description": "Proposal generated successfully",
+            "description": "Solution proposal generated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "proposal"
+                    "proposal",
+                    "solution_name",
+                    "recommended_ibm_stack",
+                    "business_outcomes"
                   ],
                   "properties": {
                     "proposal": {
-                      "type": "string",
-                      "description": "Generated multi-paragraph IBM-centric solution proposal text.",
-                      "example": "### Overview\nAcme Retail can leverage IBM watsonx to optimize AI analytics...\n\n### Architecture summary\nIntegration of watsonx.data with watsonx.ai for real-time analytics...\n\n### Key IBM components\n- IBM watsonx.ai\n- IBM watsonx Orchestrate\n- IBM Cloud Pak for Data\n\n### Business benefits\nAccelerated decision-making and reduced compute costs...\n\n### Next steps\nSchedule initial architecture design session with IBM channel technical lead."
+                      "type": "string"
+                    },
+                    "solution_name": {
+                      "type": "string"
+                    },
+                    "recommended_ibm_stack": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "business_outcomes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
@@ -73,61 +114,212 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing, non-string, or overly long raw_input field",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "raw_input is required and must be a reasonable-length string"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Bad Request - Missing or invalid raw_input"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid X-PGC-KEY header",
+            "description": "Unauthorized - Missing or invalid X-PGC-KEY header"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/draft-followup-email": {
+      "post": {
+        "summary": "Draft Customer Follow-Up Email",
+        "description": "Drafts a professional, executive-ready customer follow-up email based on customer deal context and proposed solution details.",
+        "operationId": "draft_followup_email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "proposal": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer follow-up email drafted successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "error"
+                    "subject",
+                    "email_body"
                   ],
                   "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
+                    "subject": {
+                      "type": "string"
+                    },
+                    "email_body": {
+                      "type": "string"
                     }
                   }
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal Server Error - Failed to generate proposal via watsonx.ai",
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/create-handoff-summary": {
+      "post": {
+        "summary": "Create Internal Technical Handoff Summary",
+        "description": "Generates an internal technical handoff summary for engineering and delivery teams, including scope, action items, and implementation risks.",
+        "operationId": "create_handoff_summary",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "proposal": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Technical handoff summary created successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "error"
+                    "summary",
+                    "next_steps",
+                    "risks"
                   ],
                   "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Failed to generate proposal"
+                    "summary": {
+                      "type": "string"
+                    },
+                    "next_steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "risks": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/create-opportunity-stub": {
+      "post": {
+        "summary": "Create CRM Opportunity Stub",
+        "description": "Extracts structured sales deal parameters and creates a CRM opportunity payload ready for Salesforce, HubSpot, or internal CRM ingestion.",
+        "operationId": "create_opportunity_stub",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "proposal": {
+                    "type": "string"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CRM opportunity payload created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "opportunity_name",
+                    "account_name",
+                    "stage",
+                    "notes",
+                    "estimated_value"
+                  ],
+                  "properties": {
+                    "opportunity_name": {
+                      "type": "string"
+                    },
+                    "account_name": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "estimated_value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -139,7 +331,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-PGC-KEY",
-        "description": "API Key authentication header matching PGC_API_KEY environment variable"
+        "description": "Header-based API Key authentication matching PGC_API_KEY environment variable."
       }
     }
   }
