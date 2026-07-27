@@ -12,11 +12,11 @@ function applyPrompt(key) {
 }
 
 function triggerChatOrScroll() {
-  // If watsonx Assistant web chat instance exists, open it
+  // If watsonx Assistant web chat instance exists, open it directly
   if (window.watsonAssistantChatInstance) {
     window.watsonAssistantChatInstance.openWindow();
   } else {
-    // Otherwise scroll smoothly to the live demo playground section
+    // Otherwise smoothly scroll to the demo section
     const demoSec = document.getElementById('demo');
     if (demoSec) {
       demoSec.scrollIntoView({ behavior: 'smooth' });
@@ -36,6 +36,32 @@ function switchOutputTab(tabName) {
 
   const targetPane = document.getElementById(`out-${tabName}`);
   if (targetPane) targetPane.classList.remove('hidden');
+}
+
+function copyEmailToClipboard() {
+  const subject = document.getElementById('resEmailSubject').innerText;
+  const body = document.getElementById('resEmailBody').innerText;
+  const fullText = `Subject: ${subject}\n\n${body}`;
+
+  navigator.clipboard.writeText(fullText).then(() => {
+    const btnText = document.getElementById('copyBtnText');
+    if (btnText) {
+      btnText.innerText = 'Copied!';
+      setTimeout(() => {
+        btnText.innerText = 'Copy Email Text';
+      }, 2000);
+    }
+  }).catch(err => {
+    alert('Failed to copy to clipboard');
+  });
+}
+
+function cleanText(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\n/g, '\n')
+    .replace(/^"|"$/g, '')
+    .trim();
 }
 
 async function executeWorkflow() {
@@ -73,8 +99,8 @@ async function executeWorkflow() {
 
     const propData = await propRes.json();
 
-    document.getElementById('resProposalText').innerText = propData.proposal || 'No proposal text returned.';
-    document.getElementById('resSolutionName').innerText = propData.solution_name || 'IBM Solution Blueprint';
+    document.getElementById('resProposalText').innerText = cleanText(propData.proposal) || 'No proposal text returned.';
+    document.getElementById('resSolutionName').innerText = cleanText(propData.solution_name) || 'IBM Solution Blueprint';
     document.getElementById('resStack').innerText = Array.isArray(propData.recommended_ibm_stack) 
       ? propData.recommended_ibm_stack.join(', ') 
       : 'IBM watsonx.ai, watsonx Orchestrate';
@@ -92,8 +118,8 @@ async function executeWorkflow() {
 
     if (emailRes.ok) {
       const emailData = await emailRes.json();
-      document.getElementById('resEmailSubject').innerText = emailData.subject || '-';
-      document.getElementById('resEmailBody').innerText = emailData.email_body || '-';
+      document.getElementById('resEmailSubject').innerText = cleanText(emailData.subject) || 'Follow-up: IBM Solution Overview';
+      document.getElementById('resEmailBody').innerText = cleanText(emailData.email_body) || '-';
     }
 
     // 3. Create Handoff Summary
@@ -106,16 +132,16 @@ async function executeWorkflow() {
 
     if (handoffRes.ok) {
       const handoffData = await handoffRes.json();
-      document.getElementById('resHandoffSummary').innerText = handoffData.summary || '-';
+      document.getElementById('resHandoffSummary').innerText = cleanText(handoffData.summary) || '-';
 
       const stepsUl = document.getElementById('resHandoffSteps');
       stepsUl.innerHTML = Array.isArray(handoffData.next_steps)
-        ? handoffData.next_steps.map(s => `<li>${s}</li>`).join('')
+        ? handoffData.next_steps.map(s => `<li>${cleanText(s)}</li>`).join('')
         : '<li>Schedule technical discovery session</li>';
 
       const risksUl = document.getElementById('resHandoffRisks');
       risksUl.innerHTML = Array.isArray(handoffData.risks)
-        ? handoffData.risks.map(r => `<li>${r}</li>`).join('')
+        ? handoffData.risks.map(r => `<li>${cleanText(r)}</li>`).join('')
         : '<li>Verify network security credentials</li>';
     }
 
@@ -129,10 +155,10 @@ async function executeWorkflow() {
 
     if (oppRes.ok) {
       const oppData = await oppRes.json();
-      document.getElementById('resOppName').innerText = oppData.opportunity_name || '-';
-      document.getElementById('resOppAccount').innerText = oppData.account_name || '-';
-      document.getElementById('resOppValue').innerText = oppData.estimated_value || '$100,000 USD';
-      document.getElementById('resOppNotes').innerText = oppData.notes || '-';
+      document.getElementById('resOppName').innerText = cleanText(oppData.opportunity_name) || '-';
+      document.getElementById('resOppAccount').innerText = cleanText(oppData.account_name) || '-';
+      document.getElementById('resOppValue').innerText = cleanText(oppData.estimated_value) || '$100,000 USD';
+      document.getElementById('resOppNotes').innerText = cleanText(oppData.notes) || '-';
     }
 
     // Default to Proposal tab view
@@ -145,7 +171,7 @@ async function executeWorkflow() {
   }
 }
 
-// Hook into watsonx Assistant instance on load if rendered
+// Hook into watsonx Assistant instance on load
 window.watsonAssistantChatOptions = window.watsonAssistantChatOptions || {};
 const origOnLoad = window.watsonAssistantChatOptions.onLoad;
 window.watsonAssistantChatOptions.onLoad = async (instance) => {

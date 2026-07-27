@@ -1,4 +1,4 @@
-/* Apple & Linear Inspired Minimal Premium Theme */
+/* Apple & Linear Inspired Minimal Premium Enterprise Theme */
 :root {
   --bg-main: #fcfcfd;
   --bg-surface: #ffffff;
@@ -36,6 +36,10 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-main);
@@ -52,9 +56,9 @@ body {
 
 /* 1. Navbar */
 .navbar {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
@@ -116,14 +120,15 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 18px;
+  gap: 8px;
+  padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
   border-radius: var(--radius-sm);
   text-decoration: none;
   cursor: pointer;
   border: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-nav {
@@ -142,6 +147,8 @@ body {
 
 .btn-primary:hover {
   background-color: var(--ibm-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 98, 254, 0.25);
 }
 
 .btn-secondary {
@@ -155,8 +162,30 @@ body {
   border-color: var(--text-main);
 }
 
+.btn-copy {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.btn-copy:hover {
+  background: var(--ibm-blue-light);
+  color: var(--ibm-blue);
+  border-color: var(--ibm-blue-border);
+}
+
 .btn-full {
   width: 100%;
+}
+
+.cta-arrow {
+  transition: transform 0.2s ease;
+}
+
+.btn-primary:hover .cta-arrow {
+  transform: translateX(4px);
 }
 
 /* 2. Hero Section */
@@ -172,7 +201,7 @@ body {
 
 .hero-header {
   text-align: center;
-  max-width: 800px;
+  max-width: 820px;
   margin: 0 auto 48px;
 }
 
@@ -191,7 +220,7 @@ body {
 }
 
 .hero-section h1 {
-  font-size: 46px;
+  font-size: 48px;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -1.2px;
@@ -260,18 +289,25 @@ body {
 .status-indicator {
   font-size: 12px;
   color: #10b981;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .pulse {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   background: #10b981;
   border-radius: 50%;
-  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 1.8s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
 .panel-grid {
@@ -309,7 +345,6 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
-
 }
 
 .card-footer {
@@ -450,11 +485,71 @@ body {
   color: var(--text-secondary);
 }
 
-/* 5. Live Demo Section */
+/* 5. Live Demo Section & Chat Callout Banner */
 .demo-section {
   background: var(--bg-subtle);
   border-top: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.chat-callout-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #edf5ff 100%);
+  border: 1.5px solid var(--ibm-blue-border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.chat-callout-banner:hover {
+  border-color: var(--ibm-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px -4px rgba(15, 98, 254, 0.15);
+}
+
+.callout-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+}
+
+.callout-icon {
+  background: var(--ibm-blue);
+  color: #ffffff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.callout-text {
+  flex: 1;
+}
+
+.callout-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ibm-blue);
+  display: block;
+}
+
+.callout-text p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.callout-action .btn-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ibm-blue);
 }
 
 .demo-layout {
@@ -506,49 +601,24 @@ body {
   color: var(--ibm-blue);
 }
 
-.input-box-wrapper, .auth-box-wrapper {
-  margin-bottom: 16px;
+.input-box-wrapper {
+  margin-bottom: 20px;
 }
 
-textarea, input[type="password"] {
+textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   font-family: var(--font-main);
   font-size: 13px;
+  resize: vertical;
 }
 
-textarea:focus, input:focus {
+textarea:focus {
   outline: none;
   border-color: var(--ibm-blue);
   box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.15);
-}
-
-.assistant-notice {
-  margin-top: 20px;
-  padding: 14px;
-  background: var(--ibm-blue-light);
-  border: 1px solid var(--ibm-blue-border);
-  border-radius: var(--radius-sm);
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.notice-icon {
-  font-size: 20px;
-}
-
-.notice-text strong {
-  font-size: 13px;
-  color: var(--ibm-blue);
-}
-
-.notice-text p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
 }
 
 /* Demo Outputs Right Column */
@@ -568,7 +638,7 @@ textarea:focus, input:focus {
 
 .out-tab {
   flex: 1;
-  padding: 14px 12px;
+  padding: 14px 10px;
   border: none;
   background: transparent;
   font-size: 13px;
@@ -577,6 +647,7 @@ textarea:focus, input:focus {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.15s ease;
+
 }
 
 .out-tab.active {
@@ -631,15 +702,17 @@ textarea:focus, input:focus {
 .text-content {
   font-size: 13px;
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.65;
+  color: var(--text-main);
 }
 
 .email-subject-line {
   font-size: 13px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
 
 .summary-lead {
@@ -710,7 +783,7 @@ textarea:focus, input:focus {
 .loader-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -747,8 +820,17 @@ textarea:focus, input:focus {
   box-shadow: var(--shadow-card);
 }
 
-.card-icon {
-  font-size: 28px;
+.card-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ibm-blue);
+  background: var(--ibm-blue-light);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
@@ -785,18 +867,21 @@ textarea:focus, input:focus {
   border-radius: var(--radius-md);
   text-align: center;
   flex: 1;
-  min-width: 170px;
+  min-width: 160px;
   box-shadow: var(--shadow-sm);
+}
+
+.arch-number {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ibm-blue);
+  display: block;
+  margin-bottom: 6px;
 }
 
 .arch-box.highlight {
   border-color: var(--ibm-blue-border);
   background: var(--ibm-blue-light);
-}
-
-.arch-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
 }
 
 .arch-label {
@@ -889,6 +974,8 @@ textarea:focus, input:focus {
 @media (max-width: 768px) {
   .hero-section h1 { font-size: 32px; }
   .demo-layout { grid-template-columns: 1fr; }
+  .handoff-columns, .crm-grid { grid-template-columns: 1fr; }
+  .crm-item.full-width { grid-column: span 1; }
   .arch-connector { display: none; }
   .nav-links { display: none; }
 }

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Partner Growth Copilot — IBM Pre-Sales Automation Agent</title>
+  <title>Partner Growth Copilot — Enterprise Pre-Sales AI Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -20,12 +20,12 @@
       </a>
       <nav class="nav-links">
         <a href="#product">Product</a>
-        <a href="#how-it-works">How It Works</a>
+        <a href="#how-it-works">Workflow</a>
         <a href="#demo">Demo</a>
         <a href="#architecture">Architecture</a>
       </nav>
       <div class="nav-cta">
-        <button class="btn btn-nav" onclick="triggerChatOrScroll()">Try the Agent</button>
+        <button class="btn btn-nav" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
       </div>
     </div>
   </header>
@@ -40,8 +40,11 @@
           Partner Growth Copilot helps channel teams capture customer needs, generate IBM-aligned recommendations, and prepare follow-up and handoff materials through a guided AI workflow.
         </p>
         <div class="hero-cta-group">
-          <button class="btn btn-primary" onclick="triggerChatOrScroll()">Try the Agent</button>
-          <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+          <button class="btn btn-primary" onclick="triggerChatOrScroll()">
+            <span>Start Live Conversation</span>
+            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <a href="#demo" class="btn btn-secondary">Explore Demo Playground</a>
         </div>
       </div>
 
@@ -96,19 +99,19 @@
         <span class="strip-label">Powered by IBM AI Technology:</span>
         <div class="strip-items">
           <span class="strip-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             IBM watsonx Assistant
           </span>
           <span class="strip-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
             watsonx Orchestrate <small>(Ready)</small>
           </span>
           <span class="strip-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             IBM watsonx.ai
           </span>
           <span class="strip-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             IBM Cloud Code Engine
           </span>
         </div>
@@ -151,7 +154,24 @@
       <div class="section-title">
         <span class="sub-tag">Interactive Agent</span>
         <h2>Experience the Copilot Live</h2>
-        <p>Select a sample prompt or enter your custom deal requirements to run the workflow.</p>
+        <p>Select a sample prompt or enter custom deal requirements to run the workflow.</p>
+      </div>
+
+      <!-- High-Emphasis Chat Callout Banner -->
+      <div class="chat-callout-banner" onclick="triggerChatOrScroll()">
+        <div class="callout-glow"></div>
+        <div class="callout-content">
+          <div class="callout-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="callout-text">
+            <strong>Prefer a Conversational Experience?</strong>
+            <p>Click the interactive chat launcher in the bottom-right corner to speak directly with <strong>IBM watsonx Assistant</strong>.</p>
+          </div>
+          <div class="callout-action">
+            <span class="btn-text">Open Assistant Chat ➔</span>
+          </div>
+        </div>
       </div>
 
       <div class="demo-layout">
@@ -161,38 +181,28 @@
             <label class="input-label">Select a Sample Deal Scenario:</label>
             <div class="chips-group">
               <button class="chip-btn" onclick="applyPrompt('retail')">
-                🛒 Retail Analytics Modernization
+                Retail Analytics Modernization
               </button>
               <button class="chip-btn" onclick="applyPrompt('manufacturing')">
-                🏭 Manufacturing Downtime Reduction
+                Manufacturing Downtime Reduction
               </button>
               <button class="chip-btn" onclick="applyPrompt('healthcare')">
-                🏥 Healthcare Customer Service AI
+                Healthcare Customer Service AI
               </button>
             </div>
           </div>
 
           <div class="input-box-wrapper">
             <label for="dealInput" class="input-label">Customer Deal Context:</label>
-            <textarea id="dealInput" rows="4" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
+            <textarea id="dealInput" rows="5" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
           </div>
 
-          <div class="auth-box-wrapper">
-            <label for="apiKeyInput" class="input-label">API Key (X-PGC-KEY):</label>
-            <input type="password" id="apiKeyInput" value="pgc-secret-key-123">
-          </div>
+          <!-- Hidden API Key Input field (prefilled silently) -->
+          <input type="hidden" id="apiKeyInput" value="pgc-secret-key-123">
 
           <button id="runWorkflowBtn" class="btn btn-primary btn-full" onclick="executeWorkflow()">
             Run Agent Workflow
           </button>
-
-          <div class="assistant-notice">
-            <div class="notice-icon">💬</div>
-            <div class="notice-text">
-              <strong>Prefer Conversational Chat?</strong>
-              <p>Use the chat icon in the lower-right corner to interact live with the <strong>watsonx Assistant</strong> agent.</p>
-            </div>
-          </div>
         </div>
 
         <!-- Right Column: Output Preview Cards -->
@@ -230,6 +240,10 @@
               <div id="out-email" class="out-pane hidden">
                 <div class="pane-header-bar">
                   <h4>Customer Follow-up Email</h4>
+                  <button class="btn btn-copy" onclick="copyEmailToClipboard()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                    <span id="copyBtnText">Copy Email Text</span>
+                  </button>
                 </div>
                 <div class="email-subject-line">
                   <strong>Subject:</strong> <span id="resEmailSubject">-</span>
@@ -304,17 +318,17 @@
 
       <div class="outcomes-grid">
         <div class="outcome-card">
-          <div class="card-icon">⚡</div>
+          <div class="card-badge">01</div>
           <h3>Instant Proposal Generation</h3>
           <p>Formulates a complete 5-section IBM solution proposal matching customer budget and timeline in seconds.</p>
         </div>
         <div class="outcome-card">
-          <div class="card-icon">✉️</div>
+          <div class="card-badge">02</div>
           <h3>Executive Customer Communication</h3>
           <p>Drafts polished, customer-facing follow-up emails that summarize value drivers and accelerate decision cycles.</p>
         </div>
         <div class="outcome-card">
-          <div class="card-icon">🛠️</div>
+          <div class="card-badge">03</div>
           <h3>Structured Technical Handoff</h3>
           <p>Creates clear delivery scope, engineering action items, and risk assessments for technical implementation teams.</p>
         </div>
@@ -333,31 +347,31 @@
 
       <div class="architecture-flow">
         <div class="arch-box">
-          <div class="arch-icon">👤</div>
+          <span class="arch-number">01</span>
           <span class="arch-label">Channel Partner</span>
           <span class="arch-desc">Natural language deal intake</span>
         </div>
         <div class="arch-connector">➔</div>
         <div class="arch-box">
-          <div class="arch-icon">💬</div>
+          <span class="arch-number">02</span>
           <span class="arch-label">watsonx Assistant</span>
           <span class="arch-desc">Conversational Web Chat</span>
         </div>
         <div class="arch-connector">➔</div>
         <div class="arch-box highlight">
-          <div class="arch-icon">🔄</div>
+          <span class="arch-number">03</span>
           <span class="arch-label">watsonx Orchestrate</span>
           <span class="arch-desc">Orchestration layer (ready for activation)</span>
         </div>
         <div class="arch-connector">➔</div>
         <div class="arch-box">
-          <div class="arch-icon">⚡</div>
+          <span class="arch-number">04</span>
           <span class="arch-label">Code Engine API</span>
           <span class="arch-desc">OpenAPI 3.0 Tools</span>
         </div>
         <div class="arch-connector">➔</div>
         <div class="arch-box">
-          <div class="arch-icon">🧠</div>
+          <span class="arch-number">05</span>
           <span class="arch-label">watsonx.ai</span>
           <span class="arch-desc">Llama 3.3 70B Instruct</span>
         </div>
@@ -371,7 +385,7 @@
       <div class="cta-banner">
         <h2>Show judges an AI agent that does the work, not just talks about it.</h2>
         <p>Experience automated partner pre-sales powered by IBM watsonx.</p>
-        <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Live Demo</button>
+        <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Live Conversation</button>
       </div>
     </div>
   </section>

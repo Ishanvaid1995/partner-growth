@@ -62,7 +62,7 @@ export class WatsonxService {
   }
 
   /**
-   * Safe helper to execute textChat and parse JSON results.
+   * Safe helper to execute textChat and parse JSON results cleanly.
    */
   private async executeChat<T>(
     systemPrompt: string,
@@ -83,20 +83,30 @@ export class WatsonxService {
 
     try {
       const response = await service.textChat(params);
-      const rawContent = response.result?.choices?.[0]?.message?.content || '';
+      let rawContent = response.result?.choices?.[0]?.message?.content || '';
 
       if (!rawContent.trim()) {
         throw new Error('watsonx.ai returned an empty response string');
       }
 
-      // Clean up markdown block quotes if returned
-      const cleanJson = rawContent
+      // Stripping backticks & json wrappers
+      let cleanJson = rawContent
         .replace(/```json/gi, '')
         .replace(/```/g, '')
         .trim();
 
       try {
-        return JSON.parse(cleanJson) as T;
+        const parsed = JSON.parse(cleanJson) as any;
+        
+        // Clean up email_body if nested string escaping exists
+        if (parsed.email_body && typeof parsed.email_body === 'string') {
+          parsed.email_body = parsed.email_body
+            .replace(/\\n/g, '\n')
+            .replace(/^"|"$/g, '')
+            .trim();
+        }
+
+        return parsed as T;
       } catch (parseError) {
         console.warn('[watsonxService] JSON parse failed, utilizing fallback formatter:', parseError);
         return fallbackBuilder(rawContent);
@@ -143,7 +153,7 @@ export class WatsonxService {
       buildFollowupEmailUserPrompt(rawInput, proposal),
       (rawText) => ({
         subject: 'Follow-up: IBM Solution Proposal Overview',
-        email_body: rawText,
+        email_body: rawText.replace(/\\n/g, '\n').trim(),
       })
     );
   }
