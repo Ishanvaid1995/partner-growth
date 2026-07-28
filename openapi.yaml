@@ -2,13 +2,15 @@ openapi: 3.0.3
 info:
   title: Partner Growth Copilot API
   description: >-
-    Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai.
+    Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.
   version: 1.0.0
 servers:
   - url: https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud
     description: IBM Cloud Code Engine Production Server
 security:
   - ApiKeyAuth: []
+  - LegacyPgcKey: []
+  - BearerAuth: []
 paths:
   /health:
     get:
@@ -38,7 +40,7 @@ paths:
     post:
       summary: Generate IBM Solution Proposal
       description: >-
-        Analyzes customer requirements and deal context to generate an IBM-centric solution proposal, including recommended IBM stack, architecture summary, and key business outcomes. Use this tool when the user requests an IBM solution proposal or technical blueprint for a deal.
+        Analyzes customer requirements and deal context to generate an IBM-centric solution proposal, including recommended IBM stack, architecture summary, and key business outcomes.
       operationId: generate_proposal
       requestBody:
         required: true
@@ -68,24 +70,20 @@ paths:
                 properties:
                   proposal:
                     type: string
-                    description: Multi-paragraph structured IBM solution proposal text.
                   solution_name:
                     type: string
-                    description: Title of the recommended IBM solution.
                   recommended_ibm_stack:
                     type: array
                     items:
                       type: string
-                    description: List of recommended IBM products and services.
                   business_outcomes:
                     type: array
                     items:
                       type: string
-                    description: Key expected business metrics and value drivers.
         '400':
           description: Invalid request parameters or input too long
         '401':
-          description: Unauthorized - Invalid or missing X-PGC-KEY header
+          description: Unauthorized - Invalid or missing x-api-key header
         '500':
           description: Internal server error generating proposal
 
@@ -93,7 +91,7 @@ paths:
     post:
       summary: Draft Customer Follow-Up Email
       description: >-
-        Drafts a professional, executive-ready customer follow-up email based on customer deal context and proposed solution details. Use this tool when the user asks to send, draft, or compose a follow-up email for a customer deal.
+        Drafts a professional, executive-ready customer follow-up email based on customer deal context and proposed solution details.
       operationId: draft_followup_email
       requestBody:
         required: true
@@ -106,10 +104,8 @@ paths:
               properties:
                 raw_input:
                   type: string
-                  description: Customer deal requirements or summary context.
                 proposal:
                   type: string
-                  description: Optional generated proposal text to reference in the email body.
       responses:
         '200':
           description: Customer follow-up email drafted successfully
@@ -123,20 +119,18 @@ paths:
                 properties:
                   subject:
                     type: string
-                    description: Email subject line.
                   email_body:
                     type: string
-                    description: Formatted executive email text.
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing X-PGC-KEY header
+          description: Unauthorized - Invalid or missing x-api-key header
 
   /create-handoff-summary:
     post:
       summary: Create Internal Technical Handoff Summary
       description: >-
-        Generates an internal technical handoff summary for engineering and delivery teams, including scope, action items, and implementation risks. Use this tool when preparing an internal project handoff, architecture review, or technical delivery plan.
+        Generates an internal technical handoff summary for engineering and delivery teams, including scope, action items, and implementation risks.
       operationId: create_handoff_summary
       requestBody:
         required: true
@@ -149,10 +143,8 @@ paths:
               properties:
                 raw_input:
                   type: string
-                  description: Customer deal context and requirements.
                 proposal:
                   type: string
-                  description: Optional generated proposal details.
       responses:
         '200':
           description: Technical handoff summary created successfully
@@ -167,27 +159,24 @@ paths:
                 properties:
                   summary:
                     type: string
-                    description: Technical scope and implementation summary.
                   next_steps:
                     type: array
                     items:
                       type: string
-                    description: Recommended technical action items.
                   risks:
                     type: array
                     items:
                       type: string
-                    description: Technical implementation risks or considerations.
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing X-PGC-KEY header
+          description: Unauthorized - Invalid or missing x-api-key header
 
   /create-opportunity-stub:
     post:
       summary: Create CRM Opportunity Stub
       description: >-
-        Extracts structured sales deal parameters and creates a CRM opportunity payload ready for Salesforce, HubSpot, or internal CRM ingestion. Use this tool when logging a deal in CRM, creating an opportunity record, or tracking pre-sales pipeline.
+        Extracts structured sales deal parameters and creates a CRM opportunity payload ready for Salesforce, HubSpot, or internal CRM ingestion.
       operationId: create_opportunity_stub
       requestBody:
         required: true
@@ -200,13 +189,10 @@ paths:
               properties:
                 raw_input:
                   type: string
-                  description: Customer deal context string.
                 proposal:
                   type: string
-                  description: Optional generated solution proposal details.
                 customer_name:
                   type: string
-                  description: Optional explicit customer account name.
       responses:
         '200':
           description: CRM opportunity payload created successfully
@@ -223,29 +209,32 @@ paths:
                 properties:
                   opportunity_name:
                     type: string
-                    description: Formatted opportunity title.
                   account_name:
                     type: string
-                    description: Customer account name.
                   stage:
                     type: string
-                    example: Qualification
-                    description: Pipeline deal stage.
                   notes:
                     type: string
-                    description: Deal overview notes.
                   estimated_value:
                     type: string
-                    description: Estimated deal size or budget value.
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing X-PGC-KEY header
+          description: Unauthorized - Invalid or missing x-api-key header
 
 components:
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
+      name: x-api-key
+      description: Standard API key header preferred by IBM watsonx Orchestrate tool connections.
+    LegacyPgcKey:
+      type: apiKey
+      in: header
       name: X-PGC-KEY
-      description: Header-based API Key authentication matching PGC_API_KEY environment variable.
+      description: Legacy custom API key header for backward compatibility.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Standard Authorization Bearer token header.

@@ -99,30 +99,61 @@ npm start       # Run compiled production server
 
 ---
 
+## 🔒 Authentication Methods
+
+The API enforces shared-secret API key authentication across all protected endpoints (`POST /generate-proposal`, `POST /draft-followup-email`, `POST /create-handoff-summary`, `POST /create-opportunity-stub`).
+
+Supported headers (evaluated in priority order):
+1. **`x-api-key: <key>`** *(Recommended for IBM watsonx Orchestrate OpenAPI tool imports)*
+2. **`X-PGC-KEY: <key>`** *(Legacy custom header compatibility)*
+3. **`Authorization: Bearer <key>`** *(Standard Bearer token format)*
+
+---
+
 ## 🧪 Testing Endpoints with `curl`
 
-### Health Check (`GET /health`) - Public
+### 1. Standard `x-api-key` (Recommended for watsonx Orchestrate)
 ```bash
-curl -i http://localhost:3000/health
+curl -X POST http://localhost:3000/generate-proposal \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: pgc-secret-key-123" \
+  -d '{"raw_input":"Customer: Acme Retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."}'
 ```
 
-### Authorized Proposal Request (`POST /generate-proposal`)
+### 2. Legacy `X-PGC-KEY` (Custom Client Compatibility)
 ```bash
 curl -X POST http://localhost:3000/generate-proposal \
   -H "Content-Type: application/json" \
   -H "X-PGC-KEY: pgc-secret-key-123" \
-  -d '{
-    "raw_input": "Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."
-  }'
+  -d '{"raw_input":"Customer: Acme Retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."}'
 ```
 
-### Unauthorized Request Test (Missing `X-PGC-KEY`)
+### 3. Bearer Token (`Authorization: Bearer`)
 ```bash
 curl -X POST http://localhost:3000/generate-proposal \
   -H "Content-Type: application/json" \
-  -d '{ "raw_input": "Acme Retail" }'
+  -H "Authorization: Bearer pgc-secret-key-123" \
+  -d '{"raw_input":"Customer: Acme Retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."}'
 ```
-*Returns `HTTP 401 Unauthorized`: `{ "error": "Unauthorized" }`.*
+
+### Health Check (`GET /health`) - Unsecured Public Endpoint
+```bash
+curl -i http://localhost:3000/health
+```
+
+### Unauthorized Request Test (Missing / Invalid Key)
+```bash
+curl -X POST http://localhost:3000/generate-proposal \
+  -H "Content-Type: application/json" \
+  -d '{"raw_input":"Acme Retail"}'
+```
+*Returns `HTTP 401 Unauthorized`:*
+```json
+{
+  "error": "Unauthorized",
+  "message": "Valid API credentials were not provided."
+}
+```
 
 ---
 

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Partner Growth Copilot API",
-    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai.",
+    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.",
     "version": "1.0.0"
   },
   "servers": [
@@ -14,6 +14,12 @@
   "security": [
     {
       "ApiKeyAuth": []
+    },
+    {
+      "LegacyPgcKey": []
+    },
+    {
+      "BearerAuth": []
     }
   ],
   "paths": {
@@ -117,7 +123,7 @@
             "description": "Bad Request - Missing or invalid raw_input"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid X-PGC-KEY header"
+            "description": "Unauthorized - Missing or invalid x-api-key header"
           },
           "500": {
             "description": "Internal Server Error"
@@ -330,8 +336,19 @@
       "ApiKeyAuth": {
         "type": "apiKey",
         "in": "header",
+        "name": "x-api-key",
+        "description": "Standard API key header preferred by IBM watsonx Orchestrate tool connections."
+      },
+      "LegacyPgcKey": {
+        "type": "apiKey",
+        "in": "header",
         "name": "X-PGC-KEY",
-        "description": "Header-based API Key authentication matching PGC_API_KEY environment variable."
+        "description": "Legacy custom API key header for backward compatibility."
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Standard Authorization Bearer token header."
       }
     }
   }

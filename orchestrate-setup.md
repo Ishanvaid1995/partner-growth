@@ -20,7 +20,7 @@ This guide provides step-by-step instructions for importing the **Partner Growth
    `https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud`
 2. Under **Authentication**:
    - **Authentication type**: Select **API Key** (Header).
-   - **Header Name**: `X-PGC-KEY`
+   - **Header Name**: `x-api-key` (Recommended for watsonx Orchestrate; `X-PGC-KEY` or `Authorization: Bearer <key>` also supported for backward compatibility).
    - **API Key Value**: Enter your secret `PGC_API_KEY` (default: `pgc-secret-key-123`).
 3. Click **Connect & Save**.
 
