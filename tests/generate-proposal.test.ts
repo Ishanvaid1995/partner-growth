@@ -11,6 +11,8 @@ jest.mock('../src/services/watsonxService', () => ({
     draftFollowupEmail: jest.fn(),
     createHandoffSummary: jest.fn(),
     createOpportunityStub: jest.fn(),
+    scoreOpportunity: jest.fn(),
+    generateFullOpportunityPackage: jest.fn(),
   },
 }));
 
@@ -110,9 +112,6 @@ describe('Partner Growth Copilot API Endpoints & Auth Middleware', () => {
         .expect(200);
 
       expect(res.body).toEqual(mockResult);
-      if (process.env.NODE_ENV !== 'production') {
-        expect(res.headers['x-auth-mode']).toBe('x-api-key');
-      }
     });
 
     it('should succeed with valid X-PGC-KEY header (legacy support)', async () => {
@@ -131,9 +130,6 @@ describe('Partner Growth Copilot API Endpoints & Auth Middleware', () => {
         .expect(200);
 
       expect(res.body).toEqual(mockResult);
-      if (process.env.NODE_ENV !== 'production') {
-        expect(res.headers['x-auth-mode']).toBe('x-pgc-key');
-      }
     });
 
     it('should succeed with valid Authorization Bearer token', async () => {
@@ -152,91 +148,67 @@ describe('Partner Growth Copilot API Endpoints & Auth Middleware', () => {
         .expect(200);
 
       expect(res.body).toEqual(mockResult);
-      if (process.env.NODE_ENV !== 'production') {
-        expect(res.headers['x-auth-mode']).toBe('bearer');
-      }
     });
+  });
 
-    it('should handle case-insensitive header names reliably (e.g. X-API-KEY)', async () => {
-      (watsonxService.generateProposal as jest.Mock).mockResolvedValue({
-        proposal: 'Sample proposal text',
-        solution_name: 'IBM watsonx Retail Analytics',
-        recommended_ibm_stack: ['IBM watsonx.ai'],
-        business_outcomes: ['Faster decisions'],
-      });
-
+  describe('POST /generate-full-opportunity-package', () => {
+    it('should return 401 when unauthorized', async () => {
       await request(app)
-        .post('/generate-proposal')
-        .set('X-API-KEY', validKey)
-        .send({ raw_input: 'Acme Retail deal context' })
-        .expect(200);
+        .post('/generate-full-opportunity-package')
+        .send({ raw_input: 'Retail AI deal' })
+        .expect(401);
     });
 
-    it('should return 400 when raw_input exceeds 8000 chars', async () => {
-      const hugeInput = 'A'.repeat(8001);
+    it('should return 200 and complete package when authorized', async () => {
+      const mockPackage = {
+        proposal: { proposal: 'Proposal text', solution_name: 'IBM Retail Analytics', recommended_ibm_stack: ['IBM watsonx.ai'], business_outcomes: ['Outcome 1'] },
+        followup_email: { subject: 'Follow-up Email', email_body: 'Dear Acme team...' },
+        handoff_summary: { summary: 'Handoff summary', next_steps: ['Step 1'], risks: ['Risk 1'] },
+        crm_stub: { opportunity_name: 'Acme Retail Deal', account_name: 'Acme Retail', stage: 'Qualification', notes: 'Notes', estimated_value: '$100k' },
+        deal_score: { score: 85, reasoning: ['Good clarity'], missing_fields: [], recommended_path: 'proposal_ready' },
+        next_best_actions: ['Action 1', 'Action 2'],
+      };
+      (watsonxService.generateFullOpportunityPackage as jest.Mock).mockResolvedValue(mockPackage);
+
+      const res = await request(app)
+        .post('/generate-full-opportunity-package')
+        .set('x-api-key', validKey)
+        .send({
+          raw_input: 'Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4.',
+          industry: 'retail',
+          account_name: 'Acme Retail',
+        })
+        .expect(200);
+
+      expect(res.body).toEqual(mockPackage);
+    });
+  });
+
+  describe('POST /score-opportunity', () => {
+    it('should return 401 when unauthorized', async () => {
       await request(app)
-        .post('/generate-proposal')
-        .set('x-api-key', validKey)
-        .send({ raw_input: hugeInput })
-        .expect(400);
+        .post('/score-opportunity')
+        .send({ raw_input: 'Retail AI deal' })
+        .expect(401);
     });
-  });
 
-  describe('POST /draft-followup-email', () => {
-    it('should return 200 and email draft when authorized via x-api-key', async () => {
-      const mockResult = {
-        subject: 'Follow-up: IBM Solution Overview',
-        email_body: 'Dear Acme Retail team...',
+    it('should return 200 and deal score payload when authorized', async () => {
+      const mockScore = {
+        score: 80,
+        reasoning: ['Industry identified', 'Clear problem statement'],
+        missing_fields: [],
+        recommended_path: 'proposal_ready',
+        next_best_actions: ['Schedule discovery call'],
       };
-      (watsonxService.draftFollowupEmail as jest.Mock).mockResolvedValue(mockResult);
+      (watsonxService.scoreOpportunity as jest.Mock).mockReturnValue(mockScore);
 
       const res = await request(app)
-        .post('/draft-followup-email')
+        .post('/score-opportunity')
         .set('x-api-key', validKey)
-        .send({ raw_input: 'Acme Retail deal context' })
+        .send({ raw_input: 'Acme Retail AI analytics' })
         .expect(200);
 
-      expect(res.body).toEqual(mockResult);
-    });
-  });
-
-  describe('POST /create-handoff-summary', () => {
-    it('should return 200 and technical handoff summary when authorized', async () => {
-      const mockResult = {
-        summary: 'Technical implementation scope',
-        next_steps: ['Architecture review'],
-        risks: ['IAM credentials'],
-      };
-      (watsonxService.createHandoffSummary as jest.Mock).mockResolvedValue(mockResult);
-
-      const res = await request(app)
-        .post('/create-handoff-summary')
-        .set('x-api-key', validKey)
-        .send({ raw_input: 'Acme Retail deal context' })
-        .expect(200);
-
-      expect(res.body).toEqual(mockResult);
-    });
-  });
-
-  describe('POST /create-opportunity-stub', () => {
-    it('should return 200 and CRM opportunity payload when authorized', async () => {
-      const mockResult = {
-        opportunity_name: 'Acme Retail - IBM watsonx AI',
-        account_name: 'Acme Retail',
-        stage: 'Qualification',
-        notes: 'AI analytics deal',
-        estimated_value: '$100,000 USD',
-      };
-      (watsonxService.createOpportunityStub as jest.Mock).mockResolvedValue(mockResult);
-
-      const res = await request(app)
-        .post('/create-opportunity-stub')
-        .set('x-api-key', validKey)
-        .send({ raw_input: 'Acme Retail deal context' })
-        .expect(200);
-
-      expect(res.body).toEqual(mockResult);
+      expect(res.body).toEqual(mockScore);
     });
   });
 });

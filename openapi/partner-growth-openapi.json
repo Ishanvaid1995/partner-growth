@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Partner Growth Copilot API",
-    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.",
-    "version": "1.0.0"
+    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, CRM opportunity management, and full pre-sales package generation using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.",
+    "version": "1.1.0"
   },
   "servers": [
     {
@@ -57,10 +57,172 @@
         }
       }
     },
+    "/generate-full-opportunity-package": {
+      "post": {
+        "summary": "Generate Full Pre-Sales Opportunity Package",
+        "description": "Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step.",
+        "operationId": "generate_full_opportunity_package",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "industry": {
+                    "type": "string"
+                  },
+                  "account_name": {
+                    "type": "string"
+                  },
+                  "use_case": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Full opportunity package generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "proposal",
+                    "followup_email",
+                    "handoff_summary",
+                    "crm_stub",
+                    "deal_score",
+                    "next_best_actions"
+                  ],
+                  "properties": {
+                    "proposal": {
+                      "type": "object"
+                    },
+                    "followup_email": {
+                      "type": "object"
+                    },
+                    "handoff_summary": {
+                      "type": "object"
+                    },
+                    "crm_stub": {
+                      "type": "object"
+                    },
+                    "deal_score": {
+                      "type": "object"
+                    },
+                    "next_best_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/score-opportunity": {
+      "post": {
+        "summary": "Score Deal Opportunity Readiness",
+        "description": "Evaluates deal intake context string to calculate a deal readiness score (0-100), identify missing deal parameters, and recommend the optimal sales path.",
+        "operationId": "score_opportunity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "raw_input"
+                ],
+                "properties": {
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "industry": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deal score calculated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "score",
+                    "reasoning",
+                    "missing_fields",
+                    "recommended_path",
+                    "next_best_actions"
+                  ],
+                  "properties": {
+                    "score": {
+                      "type": "integer"
+                    },
+                    "reasoning": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "missing_fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "recommended_path": {
+                      "type": "string"
+                    },
+                    "next_best_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/generate-proposal": {
       "post": {
         "summary": "Generate IBM Solution Proposal",
-        "description": "Analyzes customer requirements and deal context to generate an IBM-centric solution proposal, including recommended IBM stack, architecture summary, and key business outcomes.",
+        "description": "Analyzes customer requirements and deal context to generate an IBM-centric solution proposal.",
         "operationId": "generate_proposal",
         "requestBody": {
           "required": true,
@@ -73,9 +235,7 @@
                 ],
                 "properties": {
                   "raw_input": {
-                    "type": "string",
-                    "description": "Raw customer requirements, industry, use case, budget, and timeline details.",
-                    "example": "Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."
+                    "type": "string"
                   }
                 }
               }
@@ -84,49 +244,13 @@
         },
         "responses": {
           "200": {
-            "description": "Solution proposal generated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "proposal",
-                    "solution_name",
-                    "recommended_ibm_stack",
-                    "business_outcomes"
-                  ],
-                  "properties": {
-                    "proposal": {
-                      "type": "string"
-                    },
-                    "solution_name": {
-                      "type": "string"
-                    },
-                    "recommended_ibm_stack": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "business_outcomes": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Solution proposal generated successfully"
           },
           "400": {
-            "description": "Bad Request - Missing or invalid raw_input"
+            "description": "Bad Request"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid x-api-key header"
-          },
-          "500": {
-            "description": "Internal Server Error"
+            "description": "Unauthorized"
           }
         }
       }
@@ -134,7 +258,7 @@
     "/draft-followup-email": {
       "post": {
         "summary": "Draft Customer Follow-Up Email",
-        "description": "Drafts a professional, executive-ready customer follow-up email based on customer deal context and proposed solution details.",
+        "description": "Drafts a professional, executive-ready customer follow-up email based on customer deal context.",
         "operationId": "draft_followup_email",
         "requestBody": {
           "required": true,
@@ -159,26 +283,7 @@
         },
         "responses": {
           "200": {
-            "description": "Customer follow-up email drafted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "subject",
-                    "email_body"
-                  ],
-                  "properties": {
-                    "subject": {
-                      "type": "string"
-                    },
-                    "email_body": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Customer follow-up email drafted successfully"
           },
           "400": {
             "description": "Bad Request"
@@ -192,7 +297,7 @@
     "/create-handoff-summary": {
       "post": {
         "summary": "Create Internal Technical Handoff Summary",
-        "description": "Generates an internal technical handoff summary for engineering and delivery teams, including scope, action items, and implementation risks.",
+        "description": "Generates an internal technical handoff summary for engineering and delivery teams.",
         "operationId": "create_handoff_summary",
         "requestBody": {
           "required": true,
@@ -217,36 +322,7 @@
         },
         "responses": {
           "200": {
-            "description": "Technical handoff summary created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "summary",
-                    "next_steps",
-                    "risks"
-                  ],
-                  "properties": {
-                    "summary": {
-                      "type": "string"
-                    },
-                    "next_steps": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "risks": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Technical handoff summary created successfully"
           },
           "400": {
             "description": "Bad Request"
@@ -260,7 +336,7 @@
     "/create-opportunity-stub": {
       "post": {
         "summary": "Create CRM Opportunity Stub",
-        "description": "Extracts structured sales deal parameters and creates a CRM opportunity payload ready for Salesforce, HubSpot, or internal CRM ingestion.",
+        "description": "Extracts structured sales deal parameters and creates a CRM opportunity payload.",
         "operationId": "create_opportunity_stub",
         "requestBody": {
           "required": true,
@@ -288,38 +364,7 @@
         },
         "responses": {
           "200": {
-            "description": "CRM opportunity payload created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "opportunity_name",
-                    "account_name",
-                    "stage",
-                    "notes",
-                    "estimated_value"
-                  ],
-                  "properties": {
-                    "opportunity_name": {
-                      "type": "string"
-                    },
-                    "account_name": {
-                      "type": "string"
-                    },
-                    "stage": {
-                      "type": "string"
-                    },
-                    "notes": {
-                      "type": "string"
-                    },
-                    "estimated_value": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "CRM opportunity payload created successfully"
           },
           "400": {
             "description": "Bad Request"

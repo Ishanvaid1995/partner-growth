@@ -2,8 +2,8 @@ openapi: 3.0.3
 info:
   title: Partner Growth Copilot API
   description: >-
-    Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, and CRM opportunity management using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.
-  version: 1.0.0
+    Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, CRM opportunity management, and full pre-sales package generation using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.
+  version: 1.1.0
 servers:
   - url: https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud
     description: IBM Cloud Code Engine Production Server
@@ -36,6 +36,148 @@ paths:
                     type: string
                     example: partner-growth-copilot
 
+  /generate-full-opportunity-package:
+    post:
+      summary: Generate Full Pre-Sales Opportunity Package
+      description: >-
+        Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step.
+      operationId: generate_full_opportunity_package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - raw_input
+              properties:
+                raw_input:
+                  type: string
+                  description: Raw customer requirements, industry context, budget, and timeline details.
+                industry:
+                  type: string
+                  description: Optional industry mode (retail, manufacturing, healthcare, or general).
+                  example: retail
+                account_name:
+                  type: string
+                  description: Optional customer account name.
+                  example: Acme Retail
+                use_case:
+                  type: string
+                  description: Optional specific use case title.
+                  example: AI analytics for inventory prediction
+      responses:
+        '200':
+          description: Full opportunity package generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - proposal
+                  - followup_email
+                  - handoff_summary
+                  - crm_stub
+                  - deal_score
+                  - next_best_actions
+                properties:
+                  proposal:
+                    type: object
+                  followup_email:
+                    type: object
+                  handoff_summary:
+                    type: object
+                  crm_stub:
+                    type: object
+                  deal_score:
+                    type: object
+                    required:
+                      - score
+                      - reasoning
+                      - missing_fields
+                      - recommended_path
+                    properties:
+                      score:
+                        type: integer
+                        example: 85
+                      reasoning:
+                        type: array
+                        items:
+                          type: string
+                      missing_fields:
+                        type: array
+                        items:
+                          type: string
+                      recommended_path:
+                        type: string
+                        example: proposal_ready
+                  next_best_actions:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Invalid request parameters or input too long
+        '401':
+          description: Unauthorized - Invalid or missing x-api-key header
+
+  /score-opportunity:
+    post:
+      summary: Score Deal Opportunity Readiness
+      description: >-
+        Evaluates deal intake context string to calculate a deal readiness score (0-100), identify missing deal parameters (industry, budget, timeline, stakeholders), and recommend the optimal sales path (nurture, discovery_workshop, pilot_ready, proposal_ready). Use this tool in watsonx Orchestrate to evaluate lead quality before initiating formal proposal generation.
+      operationId: score_opportunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - raw_input
+              properties:
+                raw_input:
+                  type: string
+                  description: Raw customer deal intake text string.
+                industry:
+                  type: string
+                  description: Optional industry mode string.
+      responses:
+        '200':
+          description: Deal score calculated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - score
+                  - reasoning
+                  - missing_fields
+                  - recommended_path
+                  - next_best_actions
+                properties:
+                  score:
+                    type: integer
+                    example: 80
+                  reasoning:
+                    type: array
+                    items:
+                      type: string
+                  missing_fields:
+                    type: array
+                    items:
+                      type: string
+                  recommended_path:
+                    type: string
+                    example: proposal_ready
+                  next_best_actions:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing x-api-key header
+
   /generate-proposal:
     post:
       summary: Generate IBM Solution Proposal
@@ -54,7 +196,6 @@ paths:
                 raw_input:
                   type: string
                   description: Raw customer requirements, industry, use case, budget, and timeline details.
-                  example: "Customer: Acme Retail; Industry: retail; Use case: AI analytics; Budget: 100k; Timeline: Q4."
       responses:
         '200':
           description: Solution proposal generated successfully
@@ -81,11 +222,9 @@ paths:
                     items:
                       type: string
         '400':
-          description: Invalid request parameters or input too long
+          description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing x-api-key header
-        '500':
-          description: Internal server error generating proposal
+          description: Unauthorized
 
   /draft-followup-email:
     post:
@@ -124,7 +263,7 @@ paths:
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing x-api-key header
+          description: Unauthorized
 
   /create-handoff-summary:
     post:
@@ -170,7 +309,7 @@ paths:
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing x-api-key header
+          description: Unauthorized
 
   /create-opportunity-stub:
     post:
@@ -220,7 +359,7 @@ paths:
         '400':
           description: Invalid request parameters
         '401':
-          description: Unauthorized - Invalid or missing x-api-key header
+          description: Unauthorized
 
 components:
   securitySchemes:

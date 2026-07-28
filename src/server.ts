@@ -7,6 +7,8 @@ import proposalRoutes from './routes/proposalRoutes';
 import emailRoutes from './routes/emailRoutes';
 import handoffRoutes from './routes/handoffRoutes';
 import opportunityRoutes from './routes/opportunityRoutes';
+import packageRoutes from './routes/packageRoutes';
+import scoreRoutes from './routes/scoreRoutes';
 
 export const app = express();
 
@@ -26,6 +28,8 @@ app.use('/', proposalRoutes);
 app.use('/', emailRoutes);
 app.use('/', handoffRoutes);
 app.use('/', opportunityRoutes);
+app.use('/', packageRoutes);
+app.use('/', scoreRoutes);
 
 // Fallback GET / for static index.html or JSON info if requested with Accept header
 app.get('/', (req: Request, res: Response) => {
@@ -41,6 +45,8 @@ app.get('/', (req: Request, res: Response) => {
         draftFollowupEmail: 'POST /draft-followup-email',
         createHandoffSummary: 'POST /create-handoff-summary',
         createOpportunityStub: 'POST /create-opportunity-stub',
+        generateFullOpportunityPackage: 'POST /generate-full-opportunity-package',
+        scoreOpportunity: 'POST /score-opportunity',
       },
     });
   }

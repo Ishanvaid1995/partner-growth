@@ -101,7 +101,7 @@ npm start       # Run compiled production server
 
 ## 🔒 Authentication Methods
 
-The API enforces shared-secret API key authentication across all protected endpoints (`POST /generate-proposal`, `POST /draft-followup-email`, `POST /create-handoff-summary`, `POST /create-opportunity-stub`).
+The API enforces shared-secret API key authentication across all protected endpoints (`POST /generate-proposal`, `POST /draft-followup-email`, `POST /create-handoff-summary`, `POST /create-opportunity-stub`, `POST /generate-full-opportunity-package`, `POST /score-opportunity`).
 
 Supported headers (evaluated in priority order):
 1. **`x-api-key: <key>`** *(Recommended for IBM watsonx Orchestrate OpenAPI tool imports)*
@@ -110,7 +110,95 @@ Supported headers (evaluated in priority order):
 
 ---
 
-## 🧪 Testing Endpoints with `curl`
+## 🛠️ watsonx Orchestrate Workflow Endpoints
+
+### 1. Full Pre-Sales Opportunity Package (`POST /generate-full-opportunity-package`)
+Generates an end-to-end pre-sales package containing proposal blueprint, customer email, technical handoff summary, CRM opportunity stub, deterministic deal score, and next best actions.
+
+```bash
+curl -X POST http://localhost:3000/generate-full-opportunity-package \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: pgc-secret-key-123" \
+  -d '{
+    "raw_input": "Customer: Acme Retail; Use case: AI analytics for inventory prediction; Budget: $100k; Timeline: Q4.",
+    "industry": "retail",
+    "account_name": "Acme Retail"
+  }'
+```
+
+#### Sample Output JSON:
+```json
+{
+  "proposal": {
+    "proposal": "Markdown proposal text...",
+    "solution_name": "IBM watsonx Retail Analytics Solution",
+    "recommended_ibm_stack": ["IBM watsonx.ai", "watsonx Orchestrate", "watsonx.data"],
+    "business_outcomes": ["Improved inventory forecast accuracy by 15%"]
+  },
+  "followup_email": {
+    "subject": "Follow-up: IBM Solution Proposal Overview",
+    "email_body": "Dear Acme Retail Team,\n\nThank you for..."
+  },
+  "handoff_summary": {
+    "summary": "Technical delivery scope for Acme Retail...",
+    "next_steps": ["Schedule technical discovery call"],
+    "risks": ["Verify IAM credentials"]
+  },
+  "crm_stub": {
+    "opportunity_name": "Acme Retail - IBM watsonx AI Transformation",
+    "account_name": "Acme Retail",
+    "stage": "Qualification",
+    "notes": "Retail AI analytics opportunity",
+    "estimated_value": "$100,000 USD"
+  },
+  "deal_score": {
+    "score": 95,
+    "reasoning": ["Industry domain is explicitly identified.", "Clear business use case provided.", "Financial budget range specified.", "Project deployment timeline specified."],
+    "missing_fields": [],
+    "recommended_path": "proposal_ready"
+  },
+  "next_best_actions": [
+    "Schedule executive proposal presentation with client sponsor.",
+    "Provision IBM watsonx sandbox environment for pilot validation.",
+    "Share formal technical handoff summary with engineering delivery team."
+  ]
+}
+```
+
+### 2. Score Opportunity Readiness (`POST /score-opportunity`)
+Evaluates deal intake text to calculate a 0-100 readiness score, identify missing parameters, and recommend the optimal sales path.
+
+```bash
+curl -X POST http://localhost:3000/score-opportunity \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: pgc-secret-key-123" \
+  -d '{"raw_input": "Acme Retail needs AI analytics"}'
+```
+
+#### Sample Output JSON:
+```json
+{
+  "score": 45,
+  "reasoning": [
+    "Industry domain is explicitly identified.",
+    "Business use case needs further technical elaboration.",
+    "No budget figures found in deal intake string."
+  ],
+  "missing_fields": [
+    "Budget estimate or price target",
+    "Target deployment timeline"
+  ],
+  "recommended_path": "discovery_workshop",
+  "next_best_actions": [
+    "Host an interactive IBM Architecture Discovery Workshop with client leads.",
+    "Gather quantitative KPI targets (e.g. downtime reduction, latency)."
+  ]
+}
+```
+
+---
+
+## 🧪 Testing Legacy Endpoints with `curl`
 
 ### 1. Standard `x-api-key` (Recommended for watsonx Orchestrate)
 ```bash

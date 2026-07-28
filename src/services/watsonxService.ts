@@ -1,6 +1,7 @@
 import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
 import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 import { config, validateWatsonxConfig } from '../config';
+import { evaluateDealInput, DealScoreResult } from './dealScorer';
 import {
   PROPOSAL_SYSTEM_PROMPT,
   buildProposalUserPrompt,
@@ -42,6 +43,27 @@ export interface OpportunityResult {
   stage: string;
   notes: string;
   estimated_value: string;
+}
+
+export interface FullPackageParams {
+  raw_input: string;
+  industry?: string;
+  account_name?: string;
+  use_case?: string;
+}
+
+export interface FullPackageResult {
+  proposal: ProposalResult;
+  followup_email: EmailResult;
+  handoff_summary: HandoffResult;
+  crm_stub: OpportunityResult;
+  deal_score: {
+    score: number;
+    reasoning: string[];
+    missing_fields: string[];
+    recommended_path: string;
+  };
+  next_best_actions: string[];
 }
 
 export class WatsonxService {
@@ -123,10 +145,10 @@ export class WatsonxService {
   /**
    * Generates structured IBM Solution Proposal.
    */
-  async generateProposal(rawInput: string): Promise<ProposalResult> {
+  async generateProposal(rawInput: string, industry?: string): Promise<ProposalResult> {
     return this.executeChat<ProposalResult>(
       PROPOSAL_SYSTEM_PROMPT,
-      buildProposalUserPrompt(rawInput),
+      buildProposalUserPrompt(rawInput, industry),
       (rawText) => ({
         proposal: rawText,
         solution_name: 'IBM watsonx Enterprise Solution',
@@ -199,6 +221,54 @@ export class WatsonxService {
         estimated_value: '$100,000 USD',
       })
     );
+  }
+
+  /**
+   * Evaluates deal intake and scores opportunity readiness.
+   */
+  scoreOpportunity(rawInput: string, industry?: string): DealScoreResult {
+    return evaluateDealInput(rawInput, industry);
+  }
+
+  /**
+   * Generates complete pre-sales opportunity package: proposal, email, handoff, CRM stub, deal score, & actions.
+   */
+  async generateFullOpportunityPackage(params: FullPackageParams): Promise<FullPackageResult> {
+    const combinedInput = [
+      params.account_name ? `Account Name: ${params.account_name}` : '',
+      params.industry ? `Industry: ${params.industry}` : '',
+      params.use_case ? `Use Case: ${params.use_case}` : '',
+      params.raw_input,
+    ].filter(Boolean).join('\n');
+
+    // 1. Generate Proposal
+    const proposalRes = await this.generateProposal(combinedInput, params.industry);
+
+    // 2. Draft Follow-up Email
+    const emailRes = await this.draftFollowupEmail(combinedInput, proposalRes.proposal);
+
+    // 3. Create Handoff Summary
+    const handoffRes = await this.createHandoffSummary(combinedInput, proposalRes.proposal);
+
+    // 4. Create CRM Opportunity Stub
+    const crmRes = await this.createOpportunityStub(combinedInput, proposalRes.proposal, params.account_name);
+
+    // 5. Evaluate Deal Score & Next Best Actions
+    const dealScore = this.scoreOpportunity(combinedInput, params.industry);
+
+    return {
+      proposal: proposalRes,
+      followup_email: emailRes,
+      handoff_summary: handoffRes,
+      crm_stub: crmRes,
+      deal_score: {
+        score: dealScore.score,
+        reasoning: dealScore.reasoning,
+        missing_fields: dealScore.missing_fields,
+        recommended_path: dealScore.recommended_path,
+      },
+      next_best_actions: dealScore.next_best_actions,
+    };
   }
 }
 
