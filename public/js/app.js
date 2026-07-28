@@ -1,5 +1,5 @@
-// Global reference for IBM watsonx Assistant web chat instance
-window.watsonAssistantChatInstance = null;
+// Global reference for IBM watsonx Orchestrate chat instance
+window.wxoChatInstance = null;
 
 // Mobile Side Drawer Toggle
 function toggleMobileMenu() {
@@ -26,48 +26,40 @@ function applyPrompt(key) {
 }
 
 /**
- * Bulletproof trigger to open the IBM watsonx Assistant web chat window.
+ * Bulletproof trigger to open the IBM watsonx Orchestrate web chat window.
  */
 function triggerChatOrScroll() {
-  // 1. Try native instance method
-  if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
-    window.watsonAssistantChatInstance.openWindow();
+  // 1. Try wxoLoader API
+  if (window.wxoLoader && typeof window.wxoLoader.open === 'function') {
+    window.wxoLoader.open();
+    return;
+  }
+  if (window.wxoLoader && typeof window.wxoLoader.openWindow === 'function') {
+    window.wxoLoader.openWindow();
     return;
   }
 
-  // 2. Fallback: Search for IBM Web Chat launcher DOM button and click it
+  // 2. Search DOM launcher elements injected by wxoLoader or Watson Assistant
   const domLauncher = 
+    document.querySelector('#wxo-chat-launcher') ||
+    document.querySelector('#wxoChatLauncher') ||
+    document.querySelector('.wxo-chat-launcher') ||
     document.querySelector('#WACLauncher__Button') ||
+    document.querySelector('button[aria-label*="orchestration" i]') ||
     document.querySelector('button[aria-label*="chat" i]') ||
     document.querySelector('.WACLauncherContainer button') ||
-    document.querySelector('[data-testid="web-chat-launcher"]') ||
-    document.querySelector('.WACLauncher__Button');
+    document.querySelector('[data-testid="web-chat-launcher"]');
 
   if (domLauncher) {
     domLauncher.click();
     return;
   }
 
-  // 3. If still initializing, retry short interval
-  let retries = 0;
-  const interval = setInterval(() => {
-    retries++;
-    if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
-      window.watsonAssistantChatInstance.openWindow();
-      clearInterval(interval);
-    } else {
-      const btn = document.querySelector('#WACLauncher__Button') || document.querySelector('button[aria-label*="chat" i]');
-      if (btn) {
-        btn.click();
-        clearInterval(interval);
-      } else if (retries >= 10) {
-        clearInterval(interval);
-        // If not loaded at all, scroll to playground
-        const demoSec = document.getElementById('demo');
-        if (demoSec) demoSec.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  }, 200);
+  // 3. Fallback: Scroll to demo section
+  const demoSec = document.getElementById('demo');
+  if (demoSec) {
+    demoSec.scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 function switchOutputTab(tabName) {
@@ -127,84 +119,67 @@ async function executeWorkflow() {
   try {
     const headers = {
       'Content-Type': 'application/json',
-      'X-PGC-KEY': apiKey || 'pgc-secret-key-123',
+      'x-api-key': apiKey || 'pgc-secret-key-123',
     };
 
-    // 1. Generate Proposal
-    spinnerText.innerText = '[1/4] Formulating IBM Solution Proposal Blueprint...';
-    const propRes = await fetch('/generate-proposal', {
+    // 1. Generate Full Opportunity Package in 1 streamlined call
+    spinnerText.innerText = 'Executing watsonx Orchestrate Pre-Sales Agent Workflow...';
+    const res = await fetch('/generate-full-opportunity-package', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ raw_input: dealInput }),
+      body: JSON.stringify({
+        raw_input: dealInput,
+        industry: 'retail',
+        account_name: 'Acme Retail',
+      }),
     });
 
-    if (!propRes.ok) {
-      const err = await propRes.json();
-      throw new Error(err.error || `API error (${propRes.status})`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || `API error (${res.status})`);
     }
 
-    const propData = await propRes.json();
+    const data = await res.json();
 
-    document.getElementById('resProposalText').innerText = cleanText(propData.proposal) || 'No proposal text returned.';
-    document.getElementById('resSolutionName').innerText = cleanText(propData.solution_name) || 'IBM Solution Blueprint';
-    document.getElementById('resStack').innerText = Array.isArray(propData.recommended_ibm_stack) 
-      ? propData.recommended_ibm_stack.join(', ') 
-      : 'IBM watsonx.ai, watsonx Orchestrate';
-    document.getElementById('resOutcomes').innerText = Array.isArray(propData.business_outcomes) 
-      ? propData.business_outcomes.join(' | ') 
-      : 'Automated pre-sales';
-
-    // 2. Draft Follow-up Email
-    spinnerText.innerText = '[2/4] Drafting Customer Follow-up Email...';
-    const emailRes = await fetch('/draft-followup-email', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ raw_input: dealInput, proposal: propData.proposal }),
-    });
-
-    if (emailRes.ok) {
-      const emailData = await emailRes.json();
-      document.getElementById('resEmailSubject').innerText = cleanText(emailData.subject) || 'Follow-up: IBM Solution Overview';
-      document.getElementById('resEmailBody').innerText = cleanText(emailData.email_body) || '-';
+    // 1. Proposal
+    if (data.proposal) {
+      document.getElementById('resProposalText').innerText = cleanText(data.proposal.proposal) || 'No proposal text returned.';
+      document.getElementById('resSolutionName').innerText = cleanText(data.proposal.solution_name) || 'IBM Solution Blueprint';
+      document.getElementById('resStack').innerText = Array.isArray(data.proposal.recommended_ibm_stack) 
+        ? data.proposal.recommended_ibm_stack.join(', ') 
+        : 'IBM watsonx.ai, watsonx Orchestrate';
+      document.getElementById('resOutcomes').innerText = Array.isArray(data.proposal.business_outcomes) 
+        ? data.proposal.business_outcomes.join(' | ') 
+        : 'Automated pre-sales';
     }
 
-    // 3. Create Handoff Summary
-    spinnerText.innerText = '[3/4] Generating Technical Handoff Summary...';
-    const handoffRes = await fetch('/create-handoff-summary', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ raw_input: dealInput, proposal: propData.proposal }),
-    });
+    // 2. Email
+    if (data.followup_email) {
+      document.getElementById('resEmailSubject').innerText = cleanText(data.followup_email.subject) || 'Follow-up: IBM Solution Overview';
+      document.getElementById('resEmailBody').innerText = cleanText(data.followup_email.email_body) || '-';
+    }
 
-    if (handoffRes.ok) {
-      const handoffData = await handoffRes.json();
-      document.getElementById('resHandoffSummary').innerText = cleanText(handoffData.summary) || '-';
+    // 3. Technical Handoff
+    if (data.handoff_summary) {
+      document.getElementById('resHandoffSummary').innerText = cleanText(data.handoff_summary.summary) || '-';
 
       const stepsUl = document.getElementById('resHandoffSteps');
-      stepsUl.innerHTML = Array.isArray(handoffData.next_steps)
-        ? handoffData.next_steps.map(s => `<li>${cleanText(s)}</li>`).join('')
+      stepsUl.innerHTML = Array.isArray(data.handoff_summary.next_steps)
+        ? data.handoff_summary.next_steps.map(s => `<li>${cleanText(s)}</li>`).join('')
         : '<li>Schedule technical discovery session</li>';
 
       const risksUl = document.getElementById('resHandoffRisks');
-      risksUl.innerHTML = Array.isArray(handoffData.risks)
-        ? handoffData.risks.map(r => `<li>${cleanText(r)}</li>`).join('')
+      risksUl.innerHTML = Array.isArray(data.handoff_summary.risks)
+        ? data.handoff_summary.risks.map(r => `<li>${cleanText(r)}</li>`).join('')
         : '<li>Verify network security credentials</li>';
     }
 
-    // 4. Create Opportunity Stub
-    spinnerText.innerText = '[4/4] Creating CRM Opportunity Payload...';
-    const oppRes = await fetch('/create-opportunity-stub', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ raw_input: dealInput, proposal: propData.proposal }),
-    });
-
-    if (oppRes.ok) {
-      const oppData = await oppRes.json();
-      document.getElementById('resOppName').innerText = cleanText(oppData.opportunity_name) || '-';
-      document.getElementById('resOppAccount').innerText = cleanText(oppData.account_name) || '-';
-      document.getElementById('resOppValue').innerText = cleanText(oppData.estimated_value) || '$100,000 USD';
-      document.getElementById('resOppNotes').innerText = cleanText(oppData.notes) || '-';
+    // 4. CRM Stub
+    if (data.crm_stub) {
+      document.getElementById('resOppName').innerText = cleanText(data.crm_stub.opportunity_name) || '-';
+      document.getElementById('resOppAccount').innerText = cleanText(data.crm_stub.account_name) || '-';
+      document.getElementById('resOppValue').innerText = cleanText(data.crm_stub.estimated_value) || '$100,000 USD';
+      document.getElementById('resOppNotes').innerText = cleanText(data.crm_stub.notes) || '-';
     }
 
     // Default to Proposal tab view

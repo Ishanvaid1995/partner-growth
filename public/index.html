@@ -70,7 +70,7 @@
         <span class="tag">IBM Enterprise Partner Platform</span>
         <h1>Turn partner discovery into an IBM-ready proposal in minutes.</h1>
         <p class="hero-subheading">
-          Pre-sales automation agent powered by <strong>IBM watsonx.ai</strong> and <strong>watsonx Assistant</strong>.
+          Pre-sales automation agent powered by <strong>IBM watsonx.ai</strong> and <strong>IBM watsonx Orchestrate</strong>.
         </p>
         <div class="hero-cta-group">
           <button class="btn btn-primary btn-hero" onclick="triggerChatOrScroll()">
@@ -137,7 +137,7 @@
       <div class="section-title">
         <span class="sub-tag">Seamless Experience</span>
         <h2>Built for Web &amp; Mobile Pre-Sales</h2>
-        <p>Run consultative deal discovery on desktop or engage clients directly on mobile via watsonx Assistant.</p>
+        <p>Run consultative deal discovery on desktop or engage clients directly on mobile via watsonx Orchestrate.</p>
       </div>
 
       <div class="devices-grid">
@@ -145,7 +145,7 @@
         <div class="device-col">
           <div class="device-header">
             <h3>Conversational Mobile Agent</h3>
-            <p>On-the-go natural language intake powered by watsonx Assistant.</p>
+            <p>On-the-go natural language intake powered by watsonx Orchestrate.</p>
           </div>
           
           <div class="iphone-mockup">
@@ -158,8 +158,8 @@
                   <div class="chat-header">
                     <div class="agent-avatar">IBM</div>
                     <div>
-                      <div class="agent-name">Partner Growth Copilot</div>
-                      <div class="agent-status">watsonx Assistant • Online</div>
+                      <div class="agent-name">Partner Growth Orchestrator</div>
+                      <div class="agent-status">watsonx Orchestrate • Online</div>
                     </div>
                   </div>
                   <div class="chat-messages">
@@ -170,11 +170,11 @@
                       Acme Retail needs AI analytics for inventory prediction with a $100k budget in Q4.
                     </div>
                     <div class="msg msg-bot">
-                      Generating IBM solution proposal blueprint and executive follow-up email...
+                      Executing tool generate_full_opportunity_package...
                     </div>
                     <div class="msg msg-card">
-                      <div class="msg-card-title">Solution Proposal Generated</div>
-                      <div class="msg-card-desc">IBM watsonx Retail Analytics (watsonx.ai + watsonx.data)</div>
+                      <div class="msg-card-title">Full Opportunity Package Generated</div>
+                      <div class="msg-card-desc">Proposal Blueprint + Follow-Up Email + Handoff Summary + CRM Stub</div>
                     </div>
                   </div>
                 </div>
@@ -230,8 +230,7 @@
       <div class="stack-strip">
         <span class="strip-label">Powered by IBM AI Stack:</span>
         <div class="strip-items">
-          <span class="strip-item">IBM watsonx Assistant</span>
-          <span class="strip-item">watsonx Orchestrate <small>(Ready)</small></span>
+          <span class="strip-item">IBM watsonx Orchestrate</span>
           <span class="strip-item">IBM watsonx.ai</span>
           <span class="strip-item">IBM Cloud Code Engine</span>
         </div>
@@ -251,7 +250,7 @@
         <div class="step-card">
           <div class="step-number">01</div>
           <h3>Capture Customer Needs</h3>
-          <p>Enter deal context in natural language via watsonx Assistant web chat or playground.</p>
+          <p>Enter deal context in natural language via watsonx Orchestrate web chat or playground.</p>
         </div>
         <div class="step-card">
           <div class="step-number">02</div>
@@ -283,10 +282,10 @@
           </div>
           <div class="callout-text">
             <strong>Prefer Conversational Chat?</strong>
-            <p>Speak directly with <strong>IBM watsonx Assistant</strong> in the lower-right corner.</p>
+            <p>Speak directly with <strong>IBM watsonx Orchestrate</strong> in the lower-right corner.</p>
           </div>
           <div class="callout-action">
-            <span class="btn-text">Open Chat Assistant ➔</span>
+            <span class="btn-text">Open Assistant Chat ➔</span>
           </div>
         </div>
       </div>
@@ -450,26 +449,20 @@
           <span class="arch-desc">Natural language deal intake</span>
         </div>
         <div class="arch-connector">➔</div>
-        <div class="arch-box">
+        <div class="arch-box highlight">
           <span class="arch-number">02</span>
-          <span class="arch-label">watsonx Assistant</span>
-          <span class="arch-desc">Conversational Web Chat</span>
+          <span class="arch-label">watsonx Orchestrate</span>
+          <span class="arch-desc">Conversational AI Chat Agent</span>
         </div>
         <div class="arch-connector">➔</div>
-        <div class="arch-box highlight">
+        <div class="arch-box">
           <span class="arch-number">03</span>
-          <span class="arch-label">watsonx Orchestrate</span>
-          <span class="arch-desc">Orchestration layer (ready for activation)</span>
+          <span class="arch-label">Code Engine API</span>
+          <span class="arch-desc">OpenAPI 3.0 Tools (x-api-key)</span>
         </div>
         <div class="arch-connector">➔</div>
         <div class="arch-box">
           <span class="arch-number">04</span>
-          <span class="arch-label">Code Engine API</span>
-          <span class="arch-desc">OpenAPI 3.0 Tools</span>
-        </div>
-        <div class="arch-connector">➔</div>
-        <div class="arch-box">
-          <span class="arch-number">05</span>
           <span class="arch-label">watsonx.ai</span>
           <span class="arch-desc">Llama 3.3 70B Instruct</span>
         </div>
@@ -482,7 +475,7 @@
     <div class="container">
       <div class="cta-banner">
         <h2>Show judges an AI agent that does the work, not just talks about it.</h2>
-        <p>Experience automated partner pre-sales powered by IBM watsonx.</p>
+        <p>Experience automated partner pre-sales powered by IBM watsonx Orchestrate.</p>
         <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
       </div>
     </div>
@@ -503,22 +496,29 @@
 
   <script src="/js/app.js"></script>
 
-  <!-- IBM watsonx Assistant embed script goes here -->
+  <!-- IBM watsonx Orchestrate Embed Script -->
   <script>
-    window.watsonAssistantChatOptions = {
-      integrationID: "8d8e078f-38e5-40d5-9fe8-8c1826dcd9e3",
-      region: "https://integrations.us-east.assistant.watson.appdomain.cloud",
-      serviceInstanceID: "c99244a6-92c6-45c3-88f5-895264f00d92",
-      onLoad: async (instance) => {
-        window.watsonAssistantChatInstance = instance;
-        await instance.render();
+    window.wxOConfiguration = {
+      orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
+      hostURL: "https://ca-tor.watson-orchestrate.cloud.ibm.com",
+      rootElementID: "root",
+      deploymentPlatform: "ibmcloud",
+      crn: "crn:v1:bluemix:public:watsonx-orchestrate:ca-tor:a/94acdb45fcec4cfe9fa1f2b4f4b116bb:dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66::",
+      chatOptions: {
+          agentId: "255fce2b-bf14-4c1a-8b55-2633e1ecbbce", 
+          agentEnvironmentId: "d6d7e725-8c1b-401f-8bf0-8ebe14c4afcd",
       }
     };
-    setTimeout(function(){
-      const t=document.createElement('script');
-      t.src="https://web-chat.global.assistant.watson.appdomain.cloud/versions/" + (window.watsonAssistantChatOptions.clientVersion || 'latest') + "/WatsonAssistantChatEntry.js";
-      document.head.appendChild(t);
-    });
+    setTimeout(function () {
+      const script = document.createElement('script');
+      script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
+      script.addEventListener('load', function () {
+          if (window.wxoLoader && typeof window.wxoLoader.init === 'function') {
+            window.wxoLoader.init();
+          }
+      });
+      document.head.appendChild(script);
+    }, 0);                     
   </script>
 </body>
 </html>
