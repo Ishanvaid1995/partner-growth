@@ -23,6 +23,22 @@ describe('Partner Growth Copilot API Endpoints & Auth Middleware', () => {
     jest.clearAllMocks();
   });
 
+  describe('GET /api/watsonx-chat-token & GET /api/watsonx-chat-public-key', () => {
+    it('should return 200 and a signed RS256 JWT token on GET /api/watsonx-chat-token', async () => {
+      const res = await request(app).get('/api/watsonx-chat-token').expect(200);
+      expect(res.body).toHaveProperty('token');
+      expect(res.body).toHaveProperty('expires_in', 3600);
+      expect(typeof res.body.token).toBe('string');
+      expect(res.body.token.split('.').length).toBe(3); // Valid JWT 3-part format
+    });
+
+    it('should return 200 and RS256 public key on GET /api/watsonx-chat-public-key', async () => {
+      const res = await request(app).get('/api/watsonx-chat-public-key').expect(200);
+      expect(res.body).toHaveProperty('public_key');
+      expect(res.body.public_key).toContain('-----BEGIN PUBLIC KEY-----');
+    });
+  });
+
   describe('extractApiCredential Helper', () => {
     it('should extract x-api-key first if present', () => {
       const mockReq = {

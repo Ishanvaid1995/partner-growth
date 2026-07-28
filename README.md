@@ -198,6 +198,38 @@ curl -X POST http://localhost:3000/score-opportunity \
 
 ---
 
+## 🔑 RS256 JWT Web Chat Security (`/api/watsonx-chat-token`)
+
+To support IBM watsonx Orchestrate / Assistant Web Chat Security (JWT mode), the backend includes an RS256 JWT token minting endpoint.
+
+### Endpoints:
+* **`GET /api/watsonx-chat-token`**: Mints a short-lived (1 hour) RS256 JWT `identityToken`.
+* **`GET /api/watsonx-chat-public-key`**: Returns the active RS256 Public Key in PEM format to upload into IBM Cloud Console.
+
+### Generating RS256 Keypair with OpenSSL:
+```bash
+# 1. Generate 2048-bit Private Key
+openssl genrsa -out private.pem 2048
+
+# 2. Extract Public Key in PEM format
+openssl rsa -in private.pem -pubout -out public.pem
+```
+
+### IBM Cloud Code Engine Environment Variable:
+Set `WATSONX_CHAT_PRIVATE_KEY` in Code Engine:
+```bash
+export WATSONX_CHAT_PRIVATE_KEY="$(cat private.pem)"
+```
+*(If `WATSONX_CHAT_PRIVATE_KEY` is omitted, the server automatically generates a temporary in-memory RSA keypair for local development).*
+
+### IBM watsonx Orchestrate Security Upload Steps:
+1. Open **IBM watsonx Orchestrate Console** → **Agents** → Select `255fce2b-bf14-4c1a-8b55-2633e1ecbbce`.
+2. Go to **Channels** → **Web Chat** → **Security**.
+3. Under **Public Key**, copy and paste the contents of `public.pem` (or fetch from `https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/api/watsonx-chat-public-key`).
+4. Click **Save**.
+
+---
+
 ## 🧪 Testing Legacy Endpoints with `curl`
 
 ### 1. Standard `x-api-key` (Recommended for watsonx Orchestrate)

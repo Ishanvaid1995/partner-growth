@@ -494,44 +494,53 @@
     </div>
   </footer>
 
+  <!-- Target Container Element for IBM watsonx Orchestrate (rootElementID: "root") -->
+  <div id="root"></div>
+
   <script src="/js/app.js"></script>
 
-  <!-- IBM watsonx Orchestrate Exclusive Embed Script -->
+  <!-- IBM watsonx Orchestrate Embedded Agent Script -->
   <script>
-    console.log('[PGC Embed] Configuring window.wxOConfiguration for IBM watsonx Orchestrate...');
-    window.wxOConfiguration = {
-      orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
-      hostURL: "https://ca-tor.watson-orchestrate.cloud.ibm.com",
-      rootElementID: "root",
-      deploymentPlatform: "ibmcloud",
-      crn: "crn:v1:bluemix:public:watsonx-orchestrate:ca-tor:a/94acdb45fcec4cfe9fa1f2b4f4b116bb:dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66::",
-      chatOptions: {
-          agentId: "255fce2b-bf14-4c1a-8b55-2633e1ecbbce", 
-          agentEnvironmentId: "d6d7e725-8c1b-401f-8bf0-8ebe14c4afcd",
-      }
-    };
-    setTimeout(function () {
-      console.log('[PGC Embed] Injecting wxoLoader.js script tag...');
-      const script = document.createElement('script');
-      script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
-      script.addEventListener('load', function () {
-          console.log('[PGC Embed] wxoLoader.js script loaded. Initializing wxoLoader.init()...');
+    /**
+     * IBM watsonx Orchestrate Embedded Chat Integration
+     * 
+     * Security mode is controlled at the INSTANCE level in IBM Cloud:
+     *   Profile Icon → Settings → Embed Security → On/Off
+     * 
+     * When security is OFF:  No identityToken needed (anonymous access).
+     * When security is ON:   Our backend mints RS256 JWTs via /api/watsonx-chat-token,
+     *                        and the public key must be registered in Embed Security settings.
+     */
+    (function() {
+      var WXO_CONFIG = {
+        orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
+        hostURL: "https://ca-tor.watson-orchestrate.cloud.ibm.com",
+        rootElementID: "root",
+        deploymentPlatform: "ibmcloud",
+        crn: "crn:v1:bluemix:public:watsonx-orchestrate:ca-tor:a/94acdb45fcec4cfe9fa1f2b4f4b116bb:dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66::",
+        chatOptions: {
+          agentId: "255fce2b-bf14-4c1a-8b55-2633e1ecbbce",
+          agentEnvironmentId: "d6d7e725-8c1b-401f-8bf0-8ebe14c4afcd"
+        }
+      };
+
+      window.wxOConfiguration = WXO_CONFIG;
+
+      setTimeout(function() {
+        var s = document.createElement('script');
+        s.src = WXO_CONFIG.hostURL + '/wxochat/wxoLoader.js?embed=true';
+        s.addEventListener('load', function() {
           if (window.wxoLoader && typeof window.wxoLoader.init === 'function') {
-            try { 
-              window.wxoLoader.init(); 
-              console.log('[PGC Embed] wxoLoader.init() executed successfully.');
-            } catch(e) {
-              console.error('[PGC Embed] Exception during wxoLoader.init():', e);
-            }
-          } else {
-            console.warn('[PGC Embed] window.wxoLoader is unavailable.');
+            try { window.wxoLoader.init(); } catch(e) { console.error('[PGC] wxoLoader.init error:', e); }
           }
-      });
-      script.addEventListener('error', function (err) {
-        console.error('[PGC Embed] Failed to load script from:', script.src);
-      });
-      document.head.appendChild(script);
-    }, 0);                     
+        });
+        s.addEventListener('error', function() {
+          console.error('[PGC] Failed to load wxoLoader.js');
+        });
+        document.head.appendChild(s);
+      }, 0);
+    })();
   </script>
 </body>
 </html>
+

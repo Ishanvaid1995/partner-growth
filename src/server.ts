@@ -9,6 +9,7 @@ import handoffRoutes from './routes/handoffRoutes';
 import opportunityRoutes from './routes/opportunityRoutes';
 import packageRoutes from './routes/packageRoutes';
 import scoreRoutes from './routes/scoreRoutes';
+import chatAuthRoutes from './routes/chatAuthRoutes';
 
 export const app = express();
 
@@ -30,6 +31,7 @@ app.use('/', handoffRoutes);
 app.use('/', opportunityRoutes);
 app.use('/', packageRoutes);
 app.use('/', scoreRoutes);
+app.use('/', chatAuthRoutes);
 
 // Fallback GET / for static index.html or JSON info if requested with Accept header
 app.get('/', (req: Request, res: Response) => {
@@ -41,6 +43,8 @@ app.get('/', (req: Request, res: Response) => {
       status: 'online',
       endpoints: {
         health: 'GET /health',
+        getWatsonxChatToken: 'GET /api/watsonx-chat-token',
+        getWatsonxChatPublicKey: 'GET /api/watsonx-chat-public-key',
         generateProposal: 'POST /generate-proposal',
         draftFollowupEmail: 'POST /draft-followup-email',
         createHandoffSummary: 'POST /create-handoff-summary',
