@@ -498,6 +498,7 @@
 
   <!-- IBM watsonx Orchestrate Exclusive Embed Script -->
   <script>
+    console.log('[PGC Embed] Configuring window.wxOConfiguration for IBM watsonx Orchestrate...');
     window.wxOConfiguration = {
       orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
       hostURL: "https://ca-tor.watson-orchestrate.cloud.ibm.com",
@@ -510,12 +511,24 @@
       }
     };
     setTimeout(function () {
+      console.log('[PGC Embed] Injecting wxoLoader.js script tag...');
       const script = document.createElement('script');
       script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
       script.addEventListener('load', function () {
+          console.log('[PGC Embed] wxoLoader.js script loaded. Initializing wxoLoader.init()...');
           if (window.wxoLoader && typeof window.wxoLoader.init === 'function') {
-            try { window.wxoLoader.init(); } catch(e) {}
+            try { 
+              window.wxoLoader.init(); 
+              console.log('[PGC Embed] wxoLoader.init() executed successfully.');
+            } catch(e) {
+              console.error('[PGC Embed] Exception during wxoLoader.init():', e);
+            }
+          } else {
+            console.warn('[PGC Embed] window.wxoLoader is unavailable.');
           }
+      });
+      script.addEventListener('error', function (err) {
+        console.error('[PGC Embed] Failed to load script from:', script.src);
       });
       document.head.appendChild(script);
     }, 0);                     
