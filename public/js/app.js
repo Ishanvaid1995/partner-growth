@@ -1,5 +1,5 @@
-// Global references for chat instances
-window.watsonAssistantChatInstance = null;
+// Global reference for watsonx Orchestrate chat
+window.wxoChatInstance = null;
 
 // Mobile Side Drawer Toggle
 function toggleMobileMenu() {
@@ -26,16 +26,10 @@ function applyPrompt(key) {
 }
 
 /**
- * Bulletproof trigger to open the IBM chat assistant window.
+ * Trigger function for IBM watsonx Orchestrate web chat window.
  */
 function triggerChatOrScroll() {
-  // 1. Try watsonx Assistant instance method
-  if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
-    window.watsonAssistantChatInstance.openWindow();
-    return;
-  }
-
-  // 2. Try wxoLoader API
+  // 1. Try wxoLoader API methods
   if (window.wxoLoader && typeof window.wxoLoader.open === 'function') {
     window.wxoLoader.open();
     return;
@@ -45,22 +39,22 @@ function triggerChatOrScroll() {
     return;
   }
 
-  // 3. Search DOM launcher elements
+  // 2. Search DOM launcher elements injected by wxoLoader
   const domLauncher = 
-    document.querySelector('#WACLauncher__Button') ||
-    document.querySelector('.WACLauncherContainer button') ||
-    document.querySelector('[data-testid="web-chat-launcher"]') ||
     document.querySelector('#wxo-chat-launcher') ||
     document.querySelector('#wxoChatLauncher') ||
     document.querySelector('.wxo-chat-launcher') ||
-    document.querySelector('button[aria-label*="chat" i]');
+    document.querySelector('button[aria-label*="orchestration" i]') ||
+    document.querySelector('button[aria-label*="chat" i]') ||
+    document.querySelector('.WACLauncherContainer button') ||
+    document.querySelector('[data-testid="web-chat-launcher"]');
 
   if (domLauncher) {
     domLauncher.click();
     return;
   }
 
-  // 4. Fallback: Scroll to interactive demo playground
+  // 3. Fallback: Scroll smoothly to demo playground
   const demoSec = document.getElementById('demo');
   if (demoSec) {
     demoSec.scrollIntoView({ behavior: 'smooth' });
@@ -127,7 +121,7 @@ async function executeWorkflow() {
       'x-api-key': apiKey || 'pgc-secret-key-123',
     };
 
-    // 1. Generate Full Opportunity Package in 1 streamlined call
+    // 1. Generate Full Opportunity Package in 11 streamlined call
     spinnerText.innerText = 'Executing watsonx Orchestrate Pre-Sales Agent Workflow...';
     const res = await fetch('/generate-full-opportunity-package', {
       method: 'POST',
