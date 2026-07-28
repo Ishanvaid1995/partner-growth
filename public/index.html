@@ -282,7 +282,7 @@
           </div>
           <div class="callout-text">
             <strong>Prefer Conversational Chat?</strong>
-            <p>Speak directly with <strong>IBM watsonx Orchestrate</strong> in the lower-right corner.</p>
+            <p>Speak directly with <strong>IBM watsonx Assistant &amp; Orchestrate</strong> in the lower-right corner.</p>
           </div>
           <div class="callout-action">
             <span class="btn-text">Open Assistant Chat ➔</span>
@@ -496,7 +496,25 @@
 
   <script src="/js/app.js"></script>
 
-  <!-- IBM watsonx Orchestrate Embed Script -->
+  <!-- IBM watsonx Assistant Primary Script -->
+  <script>
+    window.watsonAssistantChatOptions = {
+      integrationID: "8d8e078f-38e5-40d5-9fe8-8c1826dcd9e3",
+      region: "https://integrations.us-east.assistant.watson.appdomain.cloud",
+      serviceInstanceID: "c99244a6-92c6-45c3-88f5-895264f00d92",
+      onLoad: async (instance) => {
+        window.watsonAssistantChatInstance = instance;
+        await instance.render();
+      }
+    };
+    setTimeout(function(){
+      const t=document.createElement('script');
+      t.src="https://web-chat.global.assistant.watson.appdomain.cloud/versions/" + (window.watsonAssistantChatOptions.clientVersion || 'latest') + "/WatsonAssistantChatEntry.js";
+      document.head.appendChild(t);
+    });
+  </script>
+
+  <!-- IBM watsonx Orchestrate Secondary Embed Script -->
   <script>
     window.wxOConfiguration = {
       orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
@@ -514,7 +532,7 @@
       script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
       script.addEventListener('load', function () {
           if (window.wxoLoader && typeof window.wxoLoader.init === 'function') {
-            window.wxoLoader.init();
+            try { window.wxoLoader.init(); } catch(e) {}
           }
       });
       document.head.appendChild(script);

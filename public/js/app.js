@@ -1,5 +1,5 @@
-// Global reference for IBM watsonx Orchestrate chat instance
-window.wxoChatInstance = null;
+// Global references for chat instances
+window.watsonAssistantChatInstance = null;
 
 // Mobile Side Drawer Toggle
 function toggleMobileMenu() {
@@ -26,10 +26,16 @@ function applyPrompt(key) {
 }
 
 /**
- * Bulletproof trigger to open the IBM watsonx Orchestrate web chat window.
+ * Bulletproof trigger to open the IBM chat assistant window.
  */
 function triggerChatOrScroll() {
-  // 1. Try wxoLoader API
+  // 1. Try watsonx Assistant instance method
+  if (window.watsonAssistantChatInstance && typeof window.watsonAssistantChatInstance.openWindow === 'function') {
+    window.watsonAssistantChatInstance.openWindow();
+    return;
+  }
+
+  // 2. Try wxoLoader API
   if (window.wxoLoader && typeof window.wxoLoader.open === 'function') {
     window.wxoLoader.open();
     return;
@@ -39,23 +45,22 @@ function triggerChatOrScroll() {
     return;
   }
 
-  // 2. Search DOM launcher elements injected by wxoLoader or Watson Assistant
+  // 3. Search DOM launcher elements
   const domLauncher = 
+    document.querySelector('#WACLauncher__Button') ||
+    document.querySelector('.WACLauncherContainer button') ||
+    document.querySelector('[data-testid="web-chat-launcher"]') ||
     document.querySelector('#wxo-chat-launcher') ||
     document.querySelector('#wxoChatLauncher') ||
     document.querySelector('.wxo-chat-launcher') ||
-    document.querySelector('#WACLauncher__Button') ||
-    document.querySelector('button[aria-label*="orchestration" i]') ||
-    document.querySelector('button[aria-label*="chat" i]') ||
-    document.querySelector('.WACLauncherContainer button') ||
-    document.querySelector('[data-testid="web-chat-launcher"]');
+    document.querySelector('button[aria-label*="chat" i]');
 
   if (domLauncher) {
     domLauncher.click();
     return;
   }
 
-  // 3. Fallback: Scroll to demo section
+  // 4. Fallback: Scroll to interactive demo playground
   const demoSec = document.getElementById('demo');
   if (demoSec) {
     demoSec.scrollIntoView({ behavior: 'smooth' });
