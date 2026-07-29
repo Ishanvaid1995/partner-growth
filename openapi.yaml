@@ -228,7 +228,7 @@ paths:
     post:
       summary: Generate Downloadable PDF Package
       description: >-
-        Generates a styled vector PDF of the full pre-sales opportunity package and returns a downloadable URL. Use when the user asks for a downloadable PDF, export, print view, or shareable document.
+        Generates a styled vector PDF of the full pre-sales opportunity package and returns a direct absolute URL. Use when the user asks for a downloadable PDF, export, print view, or shareable document. Output the display_message or download_url verbatim.
       operationId: generate_pdf_package
       tags:
         - Documents
@@ -613,7 +613,8 @@ components:
         - success
         - file_name
         - download_url
-        - markdown_link
+        - display_message
+        - download_markdown
         - expires_in_minutes
         - summary
       properties:
@@ -625,13 +626,19 @@ components:
           example: partner-growth-package-1722220000_a1b2c3d4.pdf
         download_url:
           type: string
+          description: Direct absolute HTTPS URL to download the PDF document.
           example: https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf
-        markdown_link:
+        display_message:
           type: string
+          description: Safe human-readable plain text display message containing the raw absolute URL.
+          example: "Your PDF package is ready. Direct Download URL: https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf"
+        download_markdown:
+          type: string
+          description: Markdown link snippet for chat interfaces supporting markdown links.
           example: "[Download PDF Package](https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf)"
         expires_in_minutes:
           type: integer
           example: 60
         summary:
           type: string
-          example: PDF package generated successfully. Click the link to view or download your document.
+          example: PDF package generated successfully. Direct download link generated.

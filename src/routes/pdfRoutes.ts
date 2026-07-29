@@ -85,20 +85,34 @@ router.post(
 
         fs.writeFileSync(filePath, pdfBuffer);
 
-        // Protocol & Host determination for IBM Code Engine / Localhost
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-        const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000';
-        const baseUrl = `${protocol}://${host}`;
+        // Absolute URL construction for IBM Code Engine and local environments
+        let baseUrl = process.env.PUBLIC_APP_URL || process.env.CODEENGINE_APP_URL || process.env.HOST_URL;
+        
+        if (!baseUrl) {
+          const rawProto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+          const proto = rawProto.startsWith('https') ? 'https' : 'http';
+          const rawHost = (req.headers['x-forwarded-host'] as string) || req.get('host') || 'partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud';
+          
+          // Force https if domain is an appdomain.cloud or external host
+          const finalProto = rawHost.includes('localhost') ? proto : 'https';
+          baseUrl = `${finalProto}://${rawHost}`;
+        }
+
+        // Ensure no trailing slash on baseUrl
+        baseUrl = baseUrl.replace(/\/+$/, '');
+
         const download_url = `${baseUrl}/downloads/${fileName}`;
-        const markdown_link = `[Download PDF Package](${download_url})`;
+        const download_markdown = `[Download ${fileName}](${download_url})`;
+        const display_message = `Your PDF package is ready. Direct Download URL: ${download_url}`;
 
         res.status(200).json({
           success: true,
           file_name: fileName,
           download_url,
-          markdown_link,
+          display_message,
+          download_markdown,
           expires_in_minutes: 60,
-          summary: 'PDF package generated successfully. Click the link to view or download your document.',
+          summary: 'PDF package generated successfully. Direct download link generated.',
         });
       });
 
