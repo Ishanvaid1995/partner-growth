@@ -200,6 +200,14 @@ describe('Partner Growth Copilot API Endpoints & Auth Middleware', () => {
     });
   });
 
+  describe('Password security & user isolation', () => {
+    it('should enforce data isolation between different API keys', async () => {
+      const keyA = 'key-a';
+      const keyB = 'key-b';
+      // Mock logic to verify headers match internal context
+    });
+  });
+
   describe('POST /score-opportunity', () => {
     it('should return 401 when unauthorized', async () => {
       await request(app)

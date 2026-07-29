@@ -18,6 +18,18 @@ import {
   OPPORTUNITY_SYSTEM_PROMPT,
   buildOpportunityUserPrompt,
 } from '../prompts/opportunityPrompt';
+import {
+  DEAL_COACH_SYSTEM_PROMPT,
+  buildDealCoachUserPrompt,
+} from '../prompts/dealCoachPrompt';
+import {
+  PILOT_SYSTEM_PROMPT,
+  buildPilotUserPrompt,
+} from '../prompts/pilotPrompt';
+import {
+  RED_TEAM_SYSTEM_PROMPT,
+  buildRedTeamUserPrompt,
+} from '../prompts/redTeamPrompt';
 
 export interface ProposalResult {
   proposal: string;
@@ -64,6 +76,42 @@ export interface FullPackageResult {
     recommended_path: string;
   };
   next_best_actions: string[];
+}
+
+export interface DealCoachResult {
+  readiness_score: number;
+  readiness_label: string;
+  missing_information: string[];
+  risks: string[];
+  next_best_actions: string[];
+  coaching_notes: string;
+}
+
+export interface PilotResult {
+  pilot_name: string;
+  smallest_viable_pilot: string;
+  recommended_ibm_products: string[];
+  estimated_scope: {
+    duration_weeks: number;
+    team_size: number;
+    estimated_cost_usd: string;
+  };
+  success_kpis: string[];
+  expansion_path: string;
+  quick_wins: string[];
+}
+
+export interface RedTeamResult {
+  likely_objections: Array<{
+    objection: string;
+    stakeholder: string;
+    severity: string;
+    suggested_response: string;
+  }>;
+  commercial_risks: string[];
+  technical_risks: string[];
+  competitive_threats: string[];
+  deal_breakers: string[];
 }
 
 export class WatsonxService {
@@ -118,13 +166,43 @@ export class WatsonxService {
         .trim();
 
       try {
+        let cleanText = cleanJson;
+        // If cleanJson is still a raw JSON string containing keys like {"subject": ..., "email_body": ...}
+        if (cleanText.includes('"email_body"') || (cleanText.startsWith('{') && cleanText.endsWith('}'))) {
+          try {
+            const parsedObj = JSON.parse(cleanText);
+            if (parsedObj.email_body) {
+              parsedObj.email_body = String(parsedObj.email_body)
+                .replace(/```json/gi, '')
+                .replace(/```/g, '')
+                .replace(/\\n/g, '\n')
+                .replace(/\\"/g, '"')
+                .replace(/\\/g, '')
+                .replace(/^"|"$/g, '')
+                .trim();
+            }
+            return parsedObj as T;
+          } catch(e) {}
+        }
+
         const parsed = JSON.parse(cleanJson) as any;
         
-        // Clean up email_body if nested string escaping exists
         if (parsed.email_body && typeof parsed.email_body === 'string') {
           parsed.email_body = parsed.email_body
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
             .replace(/\\n/g, '\n')
+            .replace(/\\"/g, '"')
+            .replace(/\\/g, '')
             .replace(/^"|"$/g, '')
+            .trim();
+        }
+
+        if (parsed.proposal && typeof parsed.proposal === 'string') {
+          parsed.proposal = parsed.proposal
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .replace(/\\n/g, '\n')
             .trim();
         }
 
@@ -228,6 +306,62 @@ export class WatsonxService {
    */
   scoreOpportunity(rawInput: string, industry?: string): DealScoreResult {
     return evaluateDealInput(rawInput, industry);
+  }
+
+  /**
+   * Deal Coach: evaluates deal readiness with structured coaching feedback.
+   */
+  async dealCoach(rawInput: string, industry?: string): Promise<DealCoachResult> {
+    return this.executeChat<DealCoachResult>(
+      DEAL_COACH_SYSTEM_PROMPT,
+      buildDealCoachUserPrompt(rawInput, industry),
+      (rawText) => ({
+        readiness_score: 50,
+        readiness_label: 'Needs Work',
+        missing_information: ['Budget specifics', 'Decision-maker name', 'Timeline clarity'],
+        risks: ['Scope may be too broad for initial engagement'],
+        next_best_actions: ['Schedule discovery call', 'Identify executive sponsor', 'Define success criteria'],
+        coaching_notes: rawText.substring(0, 300),
+      })
+    );
+  }
+
+  /**
+   * Pilot Recommendation: recommends smallest viable IBM pilot.
+   */
+  async pilotRecommendation(rawInput: string, industry?: string): Promise<PilotResult> {
+    return this.executeChat<PilotResult>(
+      PILOT_SYSTEM_PROMPT,
+      buildPilotUserPrompt(rawInput, industry),
+      (rawText) => ({
+        pilot_name: 'IBM watsonx Discovery Pilot',
+        smallest_viable_pilot: rawText.substring(0, 200),
+        recommended_ibm_products: ['IBM watsonx.ai', 'IBM watsonx Orchestrate'],
+        estimated_scope: { duration_weeks: 6, team_size: 3, estimated_cost_usd: '$30,000 - $50,000' },
+        success_kpis: ['Time-to-insight reduction', 'Automation rate improvement', 'User adoption rate'],
+        expansion_path: 'Pilot success validates full enterprise deployment.',
+        quick_wins: ['First AI model deployed in week 1', 'Stakeholder demo in week 2'],
+      })
+    );
+  }
+
+  /**
+   * Red Team Analysis: surfaces objections, risks, and competitive threats.
+   */
+  async redTeamAnalysis(rawInput: string, industry?: string): Promise<RedTeamResult> {
+    return this.executeChat<RedTeamResult>(
+      RED_TEAM_SYSTEM_PROMPT,
+      buildRedTeamUserPrompt(rawInput, industry),
+      (rawText) => ({
+        likely_objections: [
+          { objection: 'Why IBM over AWS/Azure?', stakeholder: 'CTO', severity: 'high', suggested_response: 'IBM watsonx provides enterprise governance and hybrid cloud flexibility that hyperscalers lack.' },
+        ],
+        commercial_risks: ['Budget may not cover full implementation scope'],
+        technical_risks: ['Data integration complexity with legacy systems'],
+        competitive_threats: ['AWS Bedrock', 'Azure OpenAI Service', 'Google Vertex AI'],
+        deal_breakers: ['No executive sponsor identified'],
+      })
+    );
   }
 
   /**

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "usr_eae7ee71892e6a0a",
+    "name": "Ishan",
+    "email": "ishanvaid@narnel.com",
+    "passwordHash": "0218b3506b9b9de4fd357c0865a393471b73fc5ea972c5731219cfae32cee483",
+    "theme": "light",
+    "createdAt": "2026-07-29T03:39:42.103Z"
+  },
+  {
+    "id": "usr_803ea9cb2008e374",
+    "name": "Ishan Vaid",
+    "email": "ivaid1137@gmail.com",
+    "passwordHash": "17d5502507d585d0bd78aefd2d0e05f2:8b8d923c0a810a72b7ea402f6a11e9472c4f3ce9b1e0e7577be1d802e17a28b69e4846a8ffcfc68430bfaf6a30542a1c96371410cbdaa6c6ebd270e260c06b05",
+    "theme": "dark",
+    "createdAt": "2026-07-29T04:32:49.349Z"
+  }
+]

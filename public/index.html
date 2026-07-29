@@ -1,516 +1,407 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Partner Growth Copilot — Enterprise Pre-Sales AI Platform</title>
+  <title>Partner Growth Copilot — IBM Pre-Sales AI Platform</title>
+  <meta name="description" content="Generate complete IBM pre-sales proposal packages in 60 seconds. Powered by IBM watsonx.ai and watsonx Orchestrate.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-  <!-- 1. Header with Mobile Hamburger -->
-  <header class="navbar">
-    <div class="nav-container">
-      <a href="#" class="brand">
-        <span class="brand-symbol">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+  <!-- MOBILE SIDEBAR OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
+  <!-- EXPANDABLE SIDEBAR (ChatGPT / Gemini Mobile Slide-Over Drawer) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="/" class="brand">
+        <span class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </span>
-        <span class="app-name">Partner Growth Copilot</span>
+        <span class="brand-text sidebar-text">Partner Growth</span>
       </a>
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" aria-label="Close Sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
 
-      <!-- Desktop Navigation Links -->
-      <nav class="nav-links">
-        <a href="#product">Product</a>
-        <a href="#devices">Mobile &amp; Web</a>
-        <a href="#how-it-works">Workflow</a>
-        <a href="#demo">Demo</a>
-        <a href="#architecture">Architecture</a>
-      </nav>
+    <button class="new-chat-btn" onclick="startNewPackage()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span class="sidebar-text">New Package</span>
+    </button>
 
-      <div class="nav-actions">
-        <button class="btn btn-nav hide-mobile" onclick="triggerChatOrScroll()">Launch Assistant</button>
-        <!-- Mobile Hamburger Toggle Button -->
-        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Toggle Menu">
-          <svg class="icon-menu" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
+    <!-- macOS Finder Style Company Folders -->
+    <div class="folder-tree sidebar-text">
+      <div class="folder-tree-title">Company Deal Folders</div>
+      <div id="companyFoldersList">
+        <div style="padding:12px 8px; font-size:12px; color:var(--text-muted);">Sign in to save deal packages into company folders.</div>
       </div>
     </div>
-  </header>
 
-  <!-- Mobile Navigation Side Drawer -->
-  <div class="mobile-drawer-overlay" id="drawerOverlay" onclick="toggleMobileMenu()"></div>
-  <aside class="mobile-drawer" id="mobileDrawer">
-    <div class="drawer-header">
-      <div class="brand">
-        <span class="app-name">Partner Growth</span>
-      </div>
-      <button class="drawer-close-btn" onclick="toggleMobileMenu()">✕</button>
-    </div>
-    <nav class="drawer-nav">
-      <a href="#product" onclick="toggleMobileMenu()">Product Overview</a>
-      <a href="#devices" onclick="toggleMobileMenu()">Mobile &amp; Web Experience</a>
-      <a href="#how-it-works" onclick="toggleMobileMenu()">3-Step Workflow</a>
-      <a href="#demo" onclick="toggleMobileMenu()">Interactive Demo</a>
-      <a href="#architecture" onclick="toggleMobileMenu()">Architecture</a>
-    </nav>
-    <div class="drawer-footer">
-      <button class="btn btn-primary btn-full" onclick="toggleMobileMenu(); triggerChatOrScroll();">
-        Launch Chat Assistant
+    <!-- User Account Profile Button -->
+    <div class="sidebar-user">
+      <button class="user-profile-btn" onclick="openUserModal()">
+        <div class="user-avatar" id="sidebarAvatar">G</div>
+        <div class="sidebar-text">
+          <div style="font-size:13px; font-weight:700;" id="sidebarUserName">Guest Account</div>
+          <div style="font-size:11px; color:var(--text-muted);" id="sidebarUserEmail">Sign in / Register</div>
+        </div>
       </button>
     </div>
   </aside>
 
-  <!-- 2. Hero Section -->
-  <section id="product" class="hero-section">
-    <div class="container hero-container">
-      <div class="hero-header">
-        <span class="tag">IBM Enterprise Partner Platform</span>
-        <h1>Turn partner discovery into an IBM-ready proposal in minutes.</h1>
-        <p class="hero-subheading">
-          Pre-sales automation agent powered by <strong>IBM watsonx.ai</strong> and <strong>IBM watsonx Orchestrate</strong>.
+  <!-- MAIN APPLICATION WRAPPER -->
+  <div class="main-wrapper">
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+      <div class="nav-left">
+        <!-- Mobile Sidebar Toggle -->
+        <button class="mobile-menu-btn" onclick="openMobileSidebar()" aria-label="Open Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="brand-text">Partner Growth Copilot</span>
+      </div>
+
+      <div class="nav-right">
+        <a href="/architecture.html" style="font-size:13px; font-weight:600; color:var(--text-secondary); text-decoration:none; margin-right:8px;">Architecture</a>
+        <!-- Theme Toggle Button -->
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="themeIcon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span id="themeLabel">Light Mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container">
+        <h1>Paste a deal context.<br>Get an executive proposal.</h1>
+        <p class="hero-sub">
+          Generate complete pre-sales proposal packages — proposal blueprint, email draft, handoff summary, and deal score — in 60 seconds.
         </p>
-        <div class="hero-cta-group">
-          <button class="btn btn-primary btn-hero" onclick="triggerChatOrScroll()">
-            <span>Launch Chat Assistant</span>
-            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+
+        <!-- Input Area -->
+        <div class="input-area">
+          <div class="input-wrap">
+            <textarea id="dealInput" placeholder="Enter deal intake details: client name, industry, use case, budget, timeline..." rows="4"></textarea>
+            <div class="input-actions">
+              <button id="runBtn" class="btn btn-primary" onclick="executeWorkflow()">
+                Generate Package
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Scenario Chips -->
+          <div class="chips">
+            <button class="chip active" onclick="applyPrompt('retail')">Retail Analytics Modernization</button>
+            <button class="chip" onclick="applyPrompt('manufacturing')">Manufacturing Maintenance</button>
+            <button class="chip" onclick="applyPrompt('healthcare')">Healthcare Patient AI Support</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OUTPUT WORKSPACE -->
+    <section class="workspace" id="workspace">
+      <div class="container">
+        <!-- Guest Save Banner -->
+        <div id="guestSaveBanner" class="guest-save-banner" style="display:none;">
+          <div>
+            <div style="font-family:var(--font-heading); font-size:14px; font-weight:800; color:var(--text-primary);">Save this package to your account</div>
+            <div style="font-size:12px; color:var(--text-secondary);">Create an account to save deal packages into company folders.</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openAuthModal()">Create Account to Save</button>
+        </div>
+
+        <div class="workspace-header">
+          <h2 class="workspace-title" id="workspaceTitle">Opportunity Package</h2>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="downloadPdf()" id="pdfBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="output-card">
+          <div class="output-tabs">
+            <button class="output-tab active" data-tab="proposal">Proposal</button>
+            <button class="output-tab" data-tab="email">Email</button>
+            <button class="output-tab" data-tab="handoff">Handoff</button>
+            <button class="output-tab" data-tab="crm">CRM</button>
+            <button class="output-tab" data-tab="score">Deal Score</button>
+          </div>
+
+          <div class="output-body">
+            <!-- Loader -->
+            <div id="loader" class="loader-overlay hidden">
+              <div class="spinner"></div>
+              <span class="loader-text" id="loaderText">Generating package via watsonx.ai…</span>
+            </div>
+
+            <!-- Tab 1: Proposal -->
+            <div class="out-pane active" id="pane-proposal">
+              <div class="pane-header">
+                <h4 id="resSolutionName">IBM Solution Proposal</h4>
+                <span class="badge">watsonx.ai Service</span>
+              </div>
+              <div class="two-col" style="margin-bottom:20px;">
+                <div class="two-col-item">
+                  <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Recommended IBM Stack</span>
+                  <p id="resStack" style="font-size:14px; font-weight:600; color:var(--text-primary); margin-top:4px;">—</p>
+                </div>
+                <div class="two-col-item">
+                  <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Target Business Outcomes</span>
+                  <p id="resOutcomes" style="font-size:14px; font-weight:600; color:var(--text-primary); margin-top:4px;">—</p>
+                </div>
+              </div>
+              <div class="formatted-content" id="resProposalText">
+                <em>Select a scenario or enter deal context above, then click "Generate Package" to build an IBM proposal.</em>
+              </div>
+            </div>
+
+            <!-- Tab 2: Email -->
+            <div class="out-pane" id="pane-email">
+              <div class="pane-header">
+                <h4>Customer Follow-Up Email</h4>
+                <button class="btn btn-secondary btn-sm copy-email-btn" onclick="copyEmailToClipboard()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Copy Email
+                </button>
+              </div>
+              
+              <div style="margin-bottom:14px;">
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">Subject Line</label>
+                <input type="text" id="resEmailSubject" class="form-control" style="font-weight:700;" value="Follow-up: IBM Solution Overview">
+              </div>
+
+              <!-- Executive Formatting Tools Bar -->
+              <div style="display:flex; gap:6px; background:var(--bg-inset); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+                <span style="font-size:11px; font-weight:700; color:var(--text-muted); margin-right:8px; text-transform:uppercase;">Tools:</span>
+                <button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="formatEmailText('bold')"><b>B</b> Bold</button>
+                <button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="formatEmailText('italic')"><i>I</i> Italic</button>
+                <button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="formatEmailText('insertUnorderedList')">• List</button>
+                <button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="formatEmailText('formatBlock', 'H3')">H3</button>
+                <button class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="formatEmailText('removeFormat')">Clear</button>
+                <button class="btn btn-primary btn-sm" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="insertEmailPlaceholder()">+ Signature</button>
+              </div>
+
+              <!-- Editable Canvas -->
+              <div id="resEmailBody" class="email-editor" contenteditable="true">
+                <p>Dear Customer Team,</p>
+                <p>I hope this email finds you well. I wanted to follow up on our previous discussion regarding the proposed IBM solution...</p>
+              </div>
+            </div>
+
+            <!-- Tab 3: Handoff -->
+            <div class="out-pane" id="pane-handoff">
+              <div class="pane-header">
+                <h4>Technical Handoff Summary</h4>
+              </div>
+              <div class="formatted-content" id="resHandoffSummary" style="margin-bottom:20px;">—</div>
+              <div class="two-col">
+                <div class="two-col-item">
+                  <h5>Next Implementation Steps</h5>
+                  <ul id="resHandoffSteps"><li>—</li></ul>
+                </div>
+                <div class="two-col-item">
+                  <h5>Technical & Operational Risks</h5>
+                  <ul id="resHandoffRisks"><li>—</li></ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 4: CRM -->
+            <div class="out-pane" id="pane-crm">
+              <div class="pane-header">
+                <h4>CRM Opportunity Record</h4>
+              </div>
+              <div class="crm-grid">
+                <div class="crm-field"><label>Opportunity Name</label><span id="resOppName">—</span></div>
+                <div class="crm-field"><label>Account Name</label><span id="resOppAccount">—</span></div>
+                <div class="crm-field"><label>Sales Stage</label><span class="badge">Qualification</span></div>
+                <div class="crm-field"><label>Estimated Contract Value</label><span style="color:#10b981; font-weight:800;" id="resOppValue">—</span></div>
+                <div class="crm-field full"><label>Opportunity Notes</label><p id="resOppNotes">—</p></div>
+              </div>
+            </div>
+
+            <!-- Tab 5: Deal Score -->
+            <div class="out-pane" id="pane-score">
+              <div class="pane-header">
+                <h4>Deal Readiness Score</h4>
+              </div>
+              <div class="score-display">
+                <div class="score-number" id="resScoreNum" style="color:var(--ibm-blue);">—</div>
+                <div class="score-label" id="resScoreLabel">Run a scenario to evaluate deal readiness</div>
+                <div class="score-bar"><div class="score-bar-fill" id="resScoreBar" style="width:0%;background:var(--text-muted)"></div></div>
+              </div>
+              <div class="two-col">
+                <div class="two-col-item">
+                  <h5>Missing Information</h5>
+                  <ul id="resScoreMissing"><li>—</li></ul>
+                </div>
+                <div class="two-col-item">
+                  <h5>Recommended Next Actions</h5>
+                  <ul id="resScoreActions"><li>—</li></ul>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE TOGGLES -->
+    <section class="modes-section" id="modes">
+      <div class="container">
+        <div class="modes-header">
+          <h3>Advanced AI Specialist Modes</h3>
+          <p>Run specialized evaluations powered by dedicated watsonx.ai prompts.</p>
+        </div>
+        <div class="modes-grid">
+          <button class="mode-chip" data-mode="dealCoach">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            Deal Coach
           </button>
-          <a href="#demo" class="btn btn-secondary btn-hero">Try Demo Playground</a>
-        </div>
-      </div>
-
-      <!-- High-Quality MacBook Pro Hardware Mockup -->
-      <div class="macbook-mockup-wrapper">
-        <div class="macbook-frame">
-          <div class="macbook-screen">
-            <div class="screen-bar">
-              <div class="mac-dots">
-                <span class="mac-dot close"></span>
-                <span class="mac-dot minimize"></span>
-                <span class="mac-dot expand"></span>
-              </div>
-              <div class="mac-url">partner-growth.codeengine.appdomain.cloud</div>
-            </div>
-            <div class="screen-content">
-              <div class="mock-grid">
-                <div class="mock-card accent">
-                  <div class="mock-tag">01. Proposal Blueprint</div>
-                  <h5>IBM watsonx Retail AI Analytics</h5>
-                  <p>Architecture featuring watsonx.ai, watsonx Orchestrate, and watsonx.data to optimize retail inventory prediction.</p>
-                  <div class="mock-pills">
-                    <span>watsonx.ai</span>
-                    <span>watsonx.data</span>
-                  </div>
-                </div>
-                <div class="mock-card">
-                  <div class="mock-tag">02. Executive Email</div>
-                  <h5>Customer Follow-Up Draft</h5>
-                  <p>"Dear Acme Retail team, Thank you for sharing your Q4 objectives. Attached is our proposed IBM watsonx architecture..."</p>
-                  <div class="mock-pills">
-                    <span>Executive Ready</span>
-                  </div>
-                </div>
-                <div class="mock-card">
-                  <div class="mock-tag">03. Technical Handoff</div>
-                  <h5>Engineering Delivery Scope</h5>
-                  <p>Scope, implementation next steps, data connector prerequisites, and IAM security compliance checks.</p>
-                  <div class="mock-pills">
-                    <span>Engineering Scope</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="macbook-base">
-            <div class="macbook-notch"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3. Mobile & Web Multi-Device Showcase Section -->
-  <section id="devices" class="section devices-section">
-    <div class="container">
-      <div class="section-title">
-        <span class="sub-tag">Seamless Experience</span>
-        <h2>Built for Web &amp; Mobile Pre-Sales</h2>
-        <p>Run consultative deal discovery on desktop or engage clients directly on mobile via watsonx Orchestrate.</p>
-      </div>
-
-      <div class="devices-grid">
-        <!-- iPhone 15 Pro Mobile Mockup -->
-        <div class="device-col">
-          <div class="device-header">
-            <h3>Conversational Mobile Agent</h3>
-            <p>On-the-go natural language intake powered by watsonx Orchestrate.</p>
-          </div>
-          
-          <div class="iphone-mockup">
-            <div class="iphone-hardware">
-              <div class="iphone-notch">
-                <div class="dynamic-island"></div>
-              </div>
-              <div class="iphone-screen">
-                <div class="chat-mockup-app">
-                  <div class="chat-header">
-                    <div class="agent-avatar">IBM</div>
-                    <div>
-                      <div class="agent-name">Partner Growth Orchestrator</div>
-                      <div class="agent-status">watsonx Orchestrate • Online</div>
-                    </div>
-                  </div>
-                  <div class="chat-messages">
-                    <div class="msg msg-bot">
-                      Hello! Tell me about your customer deal (industry, use case, budget, timeline).
-                    </div>
-                    <div class="msg msg-user">
-                      Acme Retail needs AI analytics for inventory prediction with a $100k budget in Q4.
-                    </div>
-                    <div class="msg msg-bot">
-                      Executing tool generate_full_opportunity_package...
-                    </div>
-                    <div class="msg msg-card">
-                      <div class="msg-card-title">Full Opportunity Package Generated</div>
-                      <div class="msg-card-desc">Proposal Blueprint + Follow-Up Email + Handoff Summary + CRM Stub</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- MacBook Web Workspace Card -->
-        <div class="device-col">
-          <div class="device-header">
-            <h3>Desktop Pre-Sales Workspace</h3>
-            <p>Comprehensive multi-artifact pre-sales generation and CRM pipeline logging.</p>
-          </div>
-          
-          <div class="workspace-preview-card">
-            <div class="w-header">
-              <span class="w-badge">OpenAPI 3.0 Tools</span>
-              <h4>Automated Multi-Artifact Output</h4>
-            </div>
-            <ul class="w-features">
-              <li>
-                <div class="w-icon">⚡</div>
-                <div>
-                  <strong>IBM Solution Proposal</strong>
-                  <p>Formulates a complete 5-section proposal matching client budget and timeline.</p>
-                </div>
-              </li>
-              <li>
-                <div class="w-icon">✉️</div>
-                <div>
-                  <strong>Executive Customer Email</strong>
-                  <p>Drafts customer follow-up emails ready for 1-click clipboard copy.</p>
-                </div>
-              </li>
-              <li>
-                <div class="w-icon">🛠️</div>
-                <div>
-                  <strong>Technical Handoff &amp; CRM Payload</strong>
-                  <p>Creates delivery action items, risk assessments, and Salesforce/HubSpot stubs.</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. Trust / Stack Strip -->
-  <section class="stack-strip-section">
-    <div class="container">
-      <div class="stack-strip">
-        <span class="strip-label">Powered by IBM AI Stack:</span>
-        <div class="strip-items">
-          <span class="strip-item">IBM watsonx Orchestrate</span>
-          <span class="strip-item">IBM watsonx.ai</span>
-          <span class="strip-item">IBM Cloud Code Engine</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5. How It Works (3 Steps) -->
-  <section id="how-it-works" class="section how-it-works-section">
-    <div class="container">
-      <div class="section-title">
-        <span class="sub-tag">Workflow</span>
-        <h2>Three Simple Steps to Proposal Delivery</h2>
-      </div>
-
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-number">01</div>
-          <h3>Capture Customer Needs</h3>
-          <p>Enter deal context in natural language via watsonx Orchestrate web chat or playground.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-number">02</div>
-          <h3>watsonx.ai Reasoning</h3>
-          <p>Llama 3.3 70B formulates an IBM solution architecture, component stack, and business outcomes.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-number">03</div>
-          <h3>Deliver Multi-Artifacts</h3>
-          <p>Outputs proposal blueprint, executive email, technical handoff, and CRM opportunity stub.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 6. Live Interactive Demo Section -->
-  <section id="demo" class="section demo-section">
-    <div class="container">
-      <div class="section-title">
-        <span class="sub-tag">Interactive Agent</span>
-        <h2>Try the Copilot Live</h2>
-      </div>
-
-      <!-- High-Emphasis Chat Callout Banner -->
-      <div class="chat-callout-banner" onclick="triggerChatOrScroll()">
-        <div class="callout-content">
-          <div class="callout-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <div class="callout-text">
-            <strong>Prefer Conversational Chat?</strong>
-            <p>Speak directly with <strong>IBM watsonx Orchestrate</strong> in the lower-right corner.</p>
-          </div>
-          <div class="callout-action">
-            <span class="btn-text">Open Assistant Chat ➔</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="demo-layout">
-        <!-- Left Column: Controls -->
-        <div class="demo-controls">
-          <div class="prompt-chips-container">
-            <label class="input-label">Select a Sample Deal Scenario:</label>
-            <div class="chips-group">
-              <button class="chip-btn" onclick="applyPrompt('retail')">
-                Retail Analytics Modernization
-              </button>
-              <button class="chip-btn" onclick="applyPrompt('manufacturing')">
-                Manufacturing Downtime Reduction
-              </button>
-              <button class="chip-btn" onclick="applyPrompt('healthcare')">
-                Healthcare Customer Service AI
-              </button>
-            </div>
-          </div>
-
-          <div class="input-box-wrapper">
-            <label for="dealInput" class="input-label">Customer Deal Context:</label>
-            <textarea id="dealInput" rows="4" placeholder="Enter customer name, industry, use case, budget, and timeline..."></textarea>
-          </div>
-
-          <input type="hidden" id="apiKeyInput" value="pgc-secret-key-123">
-
-          <button id="runWorkflowBtn" class="btn btn-primary btn-full" onclick="executeWorkflow()">
-            Run Agent Workflow
+          <button class="mode-chip" data-mode="pilot">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-3.05 11a22.35 22.35 0 0 1-3.95 2z"/></svg>
+            Pilot Strategy Advisor
+          </button>
+          <button class="mode-chip" data-mode="redTeam">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Red Team Analysis
           </button>
         </div>
 
-        <!-- Right Column: Output Preview Cards -->
-        <div class="demo-outputs">
-          <div class="output-card">
-            <div class="output-nav">
-              <button class="out-tab active" onclick="switchOutputTab('proposal')">
-                <span class="tab-label-full">Solution Proposal</span>
-                <span class="tab-label-short">Proposal</span>
-              </button>
-              <button class="out-tab" onclick="switchOutputTab('email')">
-                <span class="tab-label-full">Follow-Up Email</span>
-                <span class="tab-label-short">Email</span>
-              </button>
-              <button class="out-tab" onclick="switchOutputTab('handoff')">
-                <span class="tab-label-full">Technical Handoff</span>
-                <span class="tab-label-short">Handoff</span>
-              </button>
-              <button class="out-tab" onclick="switchOutputTab('opportunity')">
-                <span class="tab-label-full">CRM Opportunity</span>
-                <span class="tab-label-short">CRM</span>
-              </button>
-            </div>
-
-            <div class="output-body">
-              <div id="loaderSpinner" class="loader-overlay hidden">
-                <div class="spinner"></div>
-                <span id="spinnerText">Processing request via watsonx.ai...</span>
-              </div>
-
-              <!-- Output 1: Proposal -->
-              <div id="out-proposal" class="out-pane active">
-                <div class="pane-header-bar">
-                  <h4 id="resSolutionName">IBM Solution Proposal Blueprint</h4>
-                  <span class="badge-sm" id="resModelTag">Llama-3.3-70b</span>
-                </div>
-                <div class="meta-strip">
-                  <div><strong>Stack:</strong> <span id="resStack">-</span></div>
-                  <div><strong>Outcomes:</strong> <span id="resOutcomes">-</span></div>
-                </div>
-                <div class="text-content" id="resProposalText">
-                  <em>Select a sample scenario on the left or enter deal context, then click "Run Agent Workflow" to generate a live IBM proposal.</em>
-                </div>
-              </div>
-
-              <!-- Output 2: Email -->
-              <div id="out-email" class="out-pane hidden">
-                <div class="pane-header-bar">
-                  <h4>Customer Follow-up Email</h4>
-                  <button class="btn btn-copy" onclick="copyEmailToClipboard()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-                    <span id="copyBtnText">Copy Email Text</span>
-                  </button>
-                </div>
-                <div class="email-subject-line">
-                  <strong>Subject:</strong> <span id="resEmailSubject">-</span>
-                </div>
-                <div class="text-content email-content" id="resEmailBody">
-                  <em>Follow-up email draft will appear here.</em>
-                </div>
-              </div>
-
-              <!-- Output 3: Handoff -->
-              <div id="out-handoff" class="out-pane hidden">
-                <div class="pane-header-bar">
-                  <h4>Internal Technical Handoff Summary</h4>
-                </div>
-                <p class="summary-lead" id="resHandoffSummary">-</p>
-                <div class="handoff-columns">
-                  <div class="handoff-col">
-                    <h5>Action Items &amp; Next Steps</h5>
-                    <ul id="resHandoffSteps"><li>-</li></ul>
-                  </div>
-                  <div class="handoff-col">
-                    <h5>Implementation Risks</h5>
-                    <ul id="resHandoffRisks"><li>-</li></ul>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Output 4: Opportunity -->
-              <div id="out-opportunity" class="out-pane hidden">
-                <div class="pane-header-bar">
-                  <h4>CRM Opportunity Payload</h4>
-                </div>
-                <div class="crm-grid">
-                  <div class="crm-item">
-                    <label>Opportunity Name</label>
-                    <span id="resOppName">-</span>
-                  </div>
-                  <div class="crm-item">
-                    <label>Account Name</label>
-                    <span id="resOppAccount">-</span>
-                  </div>
-                  <div class="crm-item">
-                    <label>Stage</label>
-                    <span class="badge-sm">Qualification</span>
-                  </div>
-                  <div class="crm-item">
-                    <label>Estimated Value</label>
-                    <span class="value-highlight" id="resOppValue">-</span>
-                  </div>
-                  <div class="crm-item full-width">
-                    <label>Deal Notes</label>
-                    <p id="resOppNotes">-</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+        <div class="mode-result" id="modeResult">
+          <div class="mode-result-card" id="modeResultCard">
+            <!-- Populated dynamically -->
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 7. Architecture Section -->
-  <section id="architecture" class="section architecture-section">
-    <div class="container">
-      <div class="section-title">
-        <span class="sub-tag">System Architecture</span>
-        <h2>End-to-End IBM Agentic Stack</h2>
-      </div>
-
-      <div class="architecture-flow">
-        <div class="arch-box">
-          <span class="arch-number">01</span>
-          <span class="arch-label">Channel Partner</span>
-          <span class="arch-desc">Natural language deal intake</span>
+    <!-- SCENARIO CARDS -->
+    <section class="scenarios-section" id="scenarios">
+      <div class="container--wide">
+        <div class="scenarios-header">
+          <h3>Scenarios</h3>
         </div>
-        <div class="arch-connector">➔</div>
-        <div class="arch-box highlight">
-          <span class="arch-number">02</span>
-          <span class="arch-label">watsonx Orchestrate</span>
-          <span class="arch-desc">Conversational AI Chat Agent</span>
-        </div>
-        <div class="arch-connector">➔</div>
-        <div class="arch-box">
-          <span class="arch-number">03</span>
-          <span class="arch-label">Code Engine API</span>
-          <span class="arch-desc">OpenAPI 3.0 Tools (x-api-key)</span>
-        </div>
-        <div class="arch-connector">➔</div>
-        <div class="arch-box">
-          <span class="arch-number">04</span>
-          <span class="arch-label">watsonx.ai</span>
-          <span class="arch-desc">Llama 3.3 70B Instruct</span>
+        <div class="scenarios-grid">
+          <div class="scenario-card" onclick="launchScenario('retail')">
+            <h4>Retail Analytics</h4>
+            <p class="scenario-desc">AI-driven customer personalization & real-time demand forecasting.</p>
+            <span class="scenario-cta">Launch &rarr;</span>
+          </div>
+          <div class="scenario-card" onclick="launchScenario('manufacturing')">
+            <h4>Manufacturing Maintenance</h4>
+            <p class="scenario-desc">IoT predictive maintenance & equipment failure forecasting.</p>
+            <span class="scenario-cta">Launch &rarr;</span>
+          </div>
+          <div class="scenario-card" onclick="launchScenario('healthcare')">
+            <h4>Healthcare AI</h4>
+            <p class="scenario-desc">HIPAA virtual agent for patient intake & EHR automation.</p>
+            <span class="scenario-cta">Launch &rarr;</span>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 8. Final CTA -->
-  <section class="section final-cta-section">
-    <div class="container">
-      <div class="cta-banner">
-        <h2>Show judges an AI agent that does the work, not just talks about it.</h2>
-        <p>Experience automated partner pre-sales powered by IBM watsonx Orchestrate.</p>
-        <button class="btn btn-primary btn-large" onclick="triggerChatOrScroll()">Launch Chat Assistant</button>
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div>
+          <span class="footer-brand-name">Partner Growth Copilot</span>
+          <span class="footer-brand-sub"> &middot; IBM Pre-Sales Automation</span>
+        </div>
+        <div class="footer-links">
+          <a href="/architecture.html">Architecture</a>
+          <a href="https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/health" target="_blank">System Health</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- AUTHENTICATION MODAL -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="authModalTitle">Sign In</h3>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" id="nameGroup" style="display:none;">
+          <label>Full Name</label>
+          <input type="text" id="authName" class="form-control" placeholder="e.g. Sarah Jenkins">
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="authEmail" class="form-control" required placeholder="name@company.com">
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="authPassword" class="form-control" required placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="authSubmitBtn">Sign In</button>
+      </form>
+
+      <div class="modal-switch" id="authSwitch">
+        Don't have an account? <a onclick="toggleAuthMode()">Register here</a>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- 9. Footer -->
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-brand">
-        <span class="brand-name">Partner Growth Copilot</span>
-        <p>Enterprise Partner Pre-Sales Automation Agent Platform</p>
+  <!-- ACCOUNT PROFILE SETTINGS MODAL -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Account Settings</h3>
+        <button class="modal-close" onclick="closeProfileModal()">✕</button>
       </div>
-      <div class="footer-links">
-        <a href="https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/health" target="_blank">Service Health</a>
+
+      <form id="profileForm" onsubmit="handleProfileUpdate(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="profName" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="profEmail" class="form-control" readonly disabled style="opacity:0.7;">
+        </div>
+
+        <div class="form-group">
+          <label>New Password (Optional)</label>
+          <input type="password" id="profPassword" class="form-control" placeholder="Leave blank to keep current">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">Save Changes</button>
+      </form>
+
+      <div style="margin-top:20px; text-align:center;">
+        <button class="btn btn-secondary btn-full" style="color:var(--status-red);" onclick="handleSignOut()">Sign Out</button>
       </div>
     </div>
-  </footer>
+  </div>
 
-  <!-- Target Container Element for IBM watsonx Orchestrate (rootElementID: "root") -->
+  <!-- IBM watsonx Orchestrate Embed Container -->
   <div id="root"></div>
 
   <script src="/js/app.js"></script>
 
-  <!-- IBM watsonx Orchestrate Embedded Agent Script -->
   <script>
-    /**
-     * IBM watsonx Orchestrate Embedded Chat Integration
-     * 
-     * Security mode is controlled at the INSTANCE level in IBM Cloud:
-     *   Profile Icon → Settings → Embed Security → On/Off
-     * 
-     * When security is OFF:  No identityToken needed (anonymous access).
-     * When security is ON:   Our backend mints RS256 JWTs via /api/watsonx-chat-token,
-     *                        and the public key must be registered in Embed Security settings.
-     */
     (function() {
       var WXO_CONFIG = {
         orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
@@ -523,9 +414,7 @@
           agentEnvironmentId: "d6d7e725-8c1b-401f-8bf0-8ebe14c4afcd"
         }
       };
-
       window.wxOConfiguration = WXO_CONFIG;
-
       setTimeout(function() {
         var s = document.createElement('script');
         s.src = WXO_CONFIG.hostURL + '/wxochat/wxoLoader.js?embed=true';
@@ -534,13 +423,10 @@
             try { window.wxoLoader.init(); } catch(e) { console.error('[PGC] wxoLoader.init error:', e); }
           }
         });
-        s.addEventListener('error', function() {
-          console.error('[PGC] Failed to load wxoLoader.js');
-        });
+        s.addEventListener('error', function() { console.error('[PGC] Failed to load wxoLoader.js'); });
         document.head.appendChild(s);
       }, 0);
     })();
   </script>
 </body>
 </html>
-

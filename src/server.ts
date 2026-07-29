@@ -10,6 +10,12 @@ import opportunityRoutes from './routes/opportunityRoutes';
 import packageRoutes from './routes/packageRoutes';
 import scoreRoutes from './routes/scoreRoutes';
 import chatAuthRoutes from './routes/chatAuthRoutes';
+import dealCoachRoutes from './routes/dealCoachRoutes';
+import pilotRoutes from './routes/pilotRoutes';
+import redTeamRoutes from './routes/redTeamRoutes';
+import pdfRoutes from './routes/pdfRoutes';
+import authRoutes from './routes/authRoutes';
+import conversationRoutes from './routes/conversationRoutes';
 
 export const app = express();
 
@@ -32,6 +38,12 @@ app.use('/', opportunityRoutes);
 app.use('/', packageRoutes);
 app.use('/', scoreRoutes);
 app.use('/', chatAuthRoutes);
+app.use('/', dealCoachRoutes);
+app.use('/', pilotRoutes);
+app.use('/', redTeamRoutes);
+app.use('/', pdfRoutes);
+app.use('/', authRoutes);
+app.use('/', conversationRoutes);
 
 // Fallback GET / for static index.html or JSON info if requested with Accept header
 app.get('/', (req: Request, res: Response) => {
@@ -51,7 +63,12 @@ app.get('/', (req: Request, res: Response) => {
         createOpportunityStub: 'POST /create-opportunity-stub',
         generateFullOpportunityPackage: 'POST /generate-full-opportunity-package',
         scoreOpportunity: 'POST /score-opportunity',
+        dealCoach: 'POST /api/deal-coach',
+        pilotRecommendation: 'POST /api/pilot-recommendation',
+        redTeam: 'POST /api/red-team',
+        generatePdf: 'POST /api/generate-pdf',
       },
     });
   }
 });
+
