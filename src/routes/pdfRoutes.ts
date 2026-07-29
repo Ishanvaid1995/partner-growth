@@ -1,8 +1,35 @@
 import { Router, Request, Response } from 'express';
 import { apiKeyAuth } from '../middleware/auth';
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 
 const router = Router();
+
+// Ensure public/downloads directory exists
+const downloadsDir = fs.existsSync(path.join(__dirname, '../../public/downloads'))
+  ? path.join(__dirname, '../../public/downloads')
+  : path.join(process.cwd(), 'public/downloads');
+
+if (!fs.existsSync(downloadsDir)) {
+  fs.mkdirSync(downloadsDir, { recursive: true });
+}
+
+// Cleanup downloads older than 60 minutes
+function cleanupOldDownloads() {
+  try {
+    const files = fs.readdirSync(downloadsDir);
+    const now = Date.now();
+    files.forEach(file => {
+      const filePath = path.join(downloadsDir, file);
+      const stats = fs.statSync(filePath);
+      if (now - stats.mtimeMs > 60 * 60 * 1000) {
+        fs.unlinkSync(filePath);
+      }
+    });
+  } catch(e) {}
+}
 
 function cleanMarkdownForPdf(text: string): string {
   if (!text) return '';
@@ -15,14 +42,36 @@ function cleanMarkdownForPdf(text: string): string {
 }
 
 /**
+ * GET /downloads/:filename
+ * Serves generated PDF files directly.
+ */
+router.get('/downloads/:filename', (req: Request, res: Response): void => {
+  cleanupOldDownloads();
+  const rawName = Array.isArray(req.params.filename) ? req.params.filename[0] : req.params.filename;
+  const filename = path.basename(rawName);
+  const filePath = path.join(downloadsDir, filename);
+
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'Not Found', message: 'PDF file expired or not found.' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="Partner_Growth_Package_${filename}"`);
+  const stream = fs.createReadStream(filePath);
+  stream.pipe(res);
+});
+
+/**
  * POST /api/generate-pdf
- * Generates a styled PDF of the full opportunity package.
+ * Generates a styled PDF of the full opportunity package and returns JSON download metadata for watsonx Orchestrate.
  */
 router.post(
   '/api/generate-pdf',
   apiKeyAuth,
   async (req: Request, res: Response): Promise<void> => {
     try {
+      cleanupOldDownloads();
       const { proposal, followup_email, handoff_summary, crm_stub, deal_score } = req.body || {};
 
       const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
@@ -31,13 +80,26 @@ router.post(
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => {
         const pdfBuffer = Buffer.concat(chunks);
-        res.set({
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': 'attachment; filename="Partner_Growth_Opportunity_Package.pdf"',
-          'Content-Length': pdfBuffer.length.toString(),
-          'Access-Control-Expose-Headers': 'Content-Disposition',
+        const fileName = `partner-growth-package-${Date.now()}_${crypto.randomBytes(4).toString('hex')}.pdf`;
+        const filePath = path.join(downloadsDir, fileName);
+
+        fs.writeFileSync(filePath, pdfBuffer);
+
+        // Protocol & Host determination for IBM Code Engine / Localhost
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+        const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000';
+        const baseUrl = `${protocol}://${host}`;
+        const download_url = `${baseUrl}/downloads/${fileName}`;
+        const markdown_link = `[Download PDF Package](${download_url})`;
+
+        res.status(200).json({
+          success: true,
+          file_name: fileName,
+          download_url,
+          markdown_link,
+          expires_in_minutes: 60,
+          summary: 'PDF package generated successfully. Click the link to view or download your document.',
         });
-        res.send(pdfBuffer);
       });
 
       // -- Cover Header --

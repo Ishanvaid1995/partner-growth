@@ -111,9 +111,17 @@ body {
 .sidebar.collapsed {
   width: 64px;
 }
+.sidebar.collapsed .brand { display: none !important; }
+.sidebar.collapsed .sidebar-header { justify-content: center; padding: 16px 8px; }
+.sidebar.collapsed .sidebar-toggle-btn { margin: 0 auto; }
+.sidebar.collapsed .new-chat-btn { margin: 16px 8px; padding: 10px; justify-content: center; }
+.sidebar.collapsed .sidebar-user { justify-content: center; padding: 16px 8px; }
 .sidebar.collapsed .sidebar-text,
 .sidebar.collapsed .folder-tree,
 .sidebar.collapsed .sidebar-user-text { display: none !important; }
+
+.desktop-toggle-icon { display: block; }
+.mobile-close-icon { display: none; }
 
 .sidebar-header {
   padding: 16px;
@@ -527,6 +535,9 @@ body {
 @media (max-width: 768px) {
   body { flex-direction: column; }
 
+  .desktop-toggle-icon { display: none !important; }
+  .mobile-close-icon { display: block !important; }
+
   /* Mobile Slide-over Drawer for Sidebar */
   .sidebar {
     position: fixed;
@@ -538,8 +549,14 @@ body {
     box-shadow: 10px 0 40px rgba(0,0,0,0.5);
     transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .sidebar.mobile-open { left: 0; }
-  .sidebar.collapsed { left: -300px; width: 280px; }
+  .sidebar.mobile-open {
+    left: 0 !important;
+    width: 280px !important;
+  }
+  .sidebar.mobile-open .brand { display: flex !important; }
+  .sidebar.mobile-open .sidebar-text,
+  .sidebar.mobile-open .folder-tree,
+  .sidebar.mobile-open .sidebar-user-text { display: block !important; }
 
   .mobile-menu-btn { display: flex; }
 

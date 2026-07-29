@@ -69,21 +69,26 @@ function updateThemeUI() {
 // ============================================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  if (sidebar) {
-    if (window.innerWidth <= 768) {
-      sidebar.classList.toggle('mobile-open');
-      if (overlay) overlay.classList.toggle('active');
+  if (!sidebar) return;
+
+  if (window.innerWidth <= 768) {
+    if (sidebar.classList.contains('mobile-open')) {
+      closeMobileSidebar();
     } else {
-      sidebar.classList.toggle('collapsed');
+      openMobileSidebar();
     }
+  } else {
+    sidebar.classList.toggle('collapsed');
   }
 }
 
 function openMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  if (sidebar) sidebar.classList.add('mobile-open');
+  if (sidebar) {
+    sidebar.classList.remove('collapsed');
+    sidebar.classList.add('mobile-open');
+  }
   if (overlay) overlay.classList.add('active');
 }
 
@@ -93,6 +98,16 @@ function closeMobileSidebar() {
   if (sidebar) sidebar.classList.remove('mobile-open');
   if (overlay) overlay.classList.remove('active');
 }
+
+// Ensure responsive drawer state cleans up cleanly on window resize
+window.addEventListener('resize', () => {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (window.innerWidth > 768) {
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (overlay) overlay.classList.remove('active');
+  }
+});
 
 function startNewPackage() {
   closeMobileSidebar();
@@ -669,16 +684,26 @@ async function downloadPdf() {
 
     if (!res.ok) throw new Error(`PDF API HTTP Error (${res.status})`);
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'Partner_Growth_Opportunity_Package.pdf';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await res.json();
+      if (data.download_url) {
+        window.open(data.download_url, '_blank');
+      } else {
+        throw new Error('No download URL returned');
+      }
+    } else {
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'Partner_Growth_Opportunity_Package.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
   } catch (err) {
     console.warn('[PDF Download Fallback Triggered]', err);
     const printWin = window.open('', '_blank');
