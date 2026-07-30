@@ -10,6 +10,10 @@ export interface AppConfig {
   watsonxModelId: string;
   watsonxVersion: string;
   watsonxApiKey: string;
+  orchestrateHostUrl: string;
+  orchestrateAgentId: string;
+  orchestrateEnvironmentId: string;
+  orchestrateApiKey: string;
 }
 
 export const config: AppConfig = {
@@ -20,6 +24,10 @@ export const config: AppConfig = {
   watsonxModelId: process.env.WATSONX_MODEL_ID || 'meta-llama/llama-3-3-70b-instruct',
   watsonxVersion: process.env.WATSONX_VERSION || '2024-05-31',
   watsonxApiKey: process.env.WATSONX_API_KEY || '',
+  orchestrateHostUrl: process.env.ORCHESTRATE_HOST_URL || 'https://api.ca-tor.watson-orchestrate.cloud.ibm.com/instances/dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66',
+  orchestrateAgentId: process.env.ORCHESTRATE_AGENT_ID || '255fce2b-bf14-4c1a-8b55-2633e1ecbbce',
+  orchestrateEnvironmentId: process.env.ORCHESTRATE_ENVIRONMENT_ID || 'd6d7e725-8c1b-401f-8bf0-8ebe14c4afcd',
+  orchestrateApiKey: process.env.ORCHESTRATE_API_KEY || process.env.WATSONX_API_KEY || '',
 };
 
 export function validateWatsonxConfig(): void {

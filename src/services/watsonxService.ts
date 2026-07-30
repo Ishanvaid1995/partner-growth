@@ -114,6 +114,72 @@ export interface RedTeamResult {
   deal_breakers: string[];
 }
 
+function repairAndSanitizeJson(rawStr: string): string {
+  let str = rawStr.trim();
+  str = str.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
+  let inString = false;
+  let isEscaped = false;
+  let result = '';
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+
+    if (char === '"' && !isEscaped) {
+      inString = !inString;
+      result += char;
+    } else if (inString) {
+      if (char === '\n') {
+        result += '\\n';
+      } else if (char === '\r') {
+        result += '\\r';
+      } else if (char === '\t') {
+        result += '\\t';
+      } else {
+        result += char;
+      }
+    } else {
+      result += char;
+    }
+
+    if (char === '\\' && !isEscaped) {
+      isEscaped = true;
+    } else {
+      isEscaped = false;
+    }
+  }
+
+  return result;
+}
+
+function cleanProposalText(text: string): string {
+  if (!text) return '';
+  let clean = text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/, '')
+    .replace(/\s*```$/, '')
+    .trim();
+
+  if (clean.includes('"solution_name"') || clean.startsWith('{')) {
+    const match = clean.match(/"proposal"\s*:\s*"([\s\S]*?)"(?:\s*,\s*"|\s*\}$)/);
+    if (match && match[1]) {
+      clean = match[1];
+    } else {
+      clean = clean
+        .replace(/",\s*"solution_name"[\s\S]*/i, '')
+        .replace(/^\{\s*"proposal"\s*:\s*"/i, '')
+        .replace(/",\s*"recommended_ibm_stack"[\s\S]*/i, '')
+        .replace(/\s*\}\s*$/, '');
+    }
+  }
+
+  return clean
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
+    .replace(/^"|"$/g, '')
+    .trim();
+}
+
 export class WatsonxService {
   private service: WatsonXAI | null = null;
 
@@ -159,57 +225,41 @@ export class WatsonxService {
         throw new Error('watsonx.ai returned an empty response string');
       }
 
-      // Stripping backticks & json wrappers
-      let cleanJson = rawContent
-        .replace(/```json/gi, '')
-        .replace(/```/g, '')
-        .trim();
+      // Repair & sanitize unescaped control characters in JSON strings
+      const sanitizedJsonStr = repairAndSanitizeJson(rawContent);
 
       try {
-        let cleanText = cleanJson;
-        // If cleanJson is still a raw JSON string containing keys like {"subject": ..., "email_body": ...}
-        if (cleanText.includes('"email_body"') || (cleanText.startsWith('{') && cleanText.endsWith('}'))) {
-          try {
-            const parsedObj = JSON.parse(cleanText);
-            if (parsedObj.email_body) {
-              parsedObj.email_body = String(parsedObj.email_body)
-                .replace(/```json/gi, '')
-                .replace(/```/g, '')
-                .replace(/\\n/g, '\n')
-                .replace(/\\"/g, '"')
-                .replace(/\\/g, '')
-                .replace(/^"|"$/g, '')
-                .trim();
-            }
-            return parsedObj as T;
-          } catch(e) {}
-        }
+        const parsed = JSON.parse(sanitizedJsonStr) as any;
 
-        const parsed = JSON.parse(cleanJson) as any;
-        
         if (parsed.email_body && typeof parsed.email_body === 'string') {
           parsed.email_body = parsed.email_body
             .replace(/```json/gi, '')
             .replace(/```/g, '')
             .replace(/\\n/g, '\n')
             .replace(/\\"/g, '"')
-            .replace(/\\/g, '')
             .replace(/^"|"$/g, '')
             .trim();
         }
 
-        if (parsed.proposal && typeof parsed.proposal === 'string') {
-          parsed.proposal = parsed.proposal
-            .replace(/```json/gi, '')
-            .replace(/```/g, '')
-            .replace(/\\n/g, '\n')
-            .trim();
+        if (parsed.proposal) {
+          if (typeof parsed.proposal === 'string') {
+            parsed.proposal = parsed.proposal
+              .replace(/```json/gi, '')
+              .replace(/```/g, '')
+              .replace(/\\n/g, '\n')
+              .trim();
+          } else if (typeof parsed.proposal === 'object') {
+            parsed.solution_name = parsed.proposal.solution_name || parsed.solution_name || 'IBM Pre-Sales Solution';
+            parsed.recommended_ibm_stack = parsed.proposal.recommended_ibm_stack || parsed.recommended_ibm_stack;
+            parsed.business_outcomes = parsed.proposal.business_outcomes || parsed.business_outcomes;
+            parsed.proposal = parsed.proposal.proposal || JSON.stringify(parsed.proposal);
+          }
         }
 
         return parsed as T;
       } catch (parseError) {
         console.warn('[watsonxService] JSON parse failed, utilizing fallback formatter:', parseError);
-        return fallbackBuilder(rawContent);
+        return fallbackBuilder(cleanProposalText(rawContent));
       }
     } catch (err: any) {
       console.error('[watsonxService Error]', {
@@ -227,20 +277,33 @@ export class WatsonxService {
     return this.executeChat<ProposalResult>(
       PROPOSAL_SYSTEM_PROMPT,
       buildProposalUserPrompt(rawInput, industry),
-      (rawText) => ({
-        proposal: rawText,
-        solution_name: 'IBM watsonx Enterprise Solution',
-        recommended_ibm_stack: [
-          'IBM watsonx.ai',
-          'IBM watsonx Orchestrate',
-          'IBM watsonx.data',
-        ],
-        business_outcomes: [
-          'Accelerated operational decision-making',
-          'Automated partner pre-sales workflows',
-          'Enhanced governance and compliance',
-        ],
-      })
+      (rawText) => {
+        const lower = (rawInput + ' ' + (industry || '')).toLowerCase();
+        let solution_name = 'IBM Enterprise AI & Automation Solution';
+        let recommended_ibm_stack = ['IBM watsonx.ai', 'IBM watsonx Orchestrate', 'IBM watsonx.data', 'Red Hat OpenShift'];
+
+        if (lower.includes('manufactur') || lower.includes('industrial') || lower.includes('iot') || lower.includes('predictive maintenance')) {
+          solution_name = 'IBM Predictive Maintenance for Industrial & Automotive';
+          recommended_ibm_stack = ['IBM Watson IoT', 'IBM Cloud Pak for Data', 'IBM Watson Studio', 'IBM Cloud Pak for Automation', 'Red Hat OpenShift'];
+        } else if (lower.includes('retail') || lower.includes('e-commerce')) {
+          solution_name = 'IBM Retail Analytics & Personalization Solution';
+          recommended_ibm_stack = ['IBM watsonx.ai', 'IBM watsonx Orchestrate', 'IBM watsonx.data', 'Red Hat OpenShift'];
+        } else if (lower.includes('health') || lower.includes('patient') || lower.includes('hospital')) {
+          solution_name = 'IBM Healthcare Virtual Agent & EHR Solution';
+          recommended_ibm_stack = ['IBM watsonx Assistant', 'IBM watsonx.ai', 'IBM Cloud Pak for Data', 'Red Hat OpenShift'];
+        }
+
+        return {
+          proposal: cleanProposalText(rawText),
+          solution_name,
+          recommended_ibm_stack,
+          business_outcomes: [
+            'Accelerated operational decision-making',
+            'Automated partner pre-sales workflows',
+            'Enhanced governance and compliance',
+          ],
+        };
+      }
     );
   }
 

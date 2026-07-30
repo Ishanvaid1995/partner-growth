@@ -1,57 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { apiKeyAuth } from '../middleware/auth';
-import { watsonxService } from '../services/watsonxService';
 import { config } from '../config';
-import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
-import { IamAuthenticator } from 'ibm-cloud-sdk-core';
+import { IamTokenManager } from 'ibm-cloud-sdk-core';
 
 const router = Router();
 
-const PACKAGE_TRIGGERS = [
-  /\bcustomer\s*:/i,
-  /\bindustry\s*:/i,
-  /\buse\s+case\s*:/i,
-  /\bbudget\s*:/i,
-  /\bgenerate\s+(a\s+)?(proposal|package|solution|plan)\b/i,
-  /\bcreate\s+(a\s+)?(proposal|package|solution|plan)\b/i,
-  /\bbuild\s+(a\s+)?(proposal|package)\b/i,
-  /\bproposal\s+for\b/i,
-  /\bpre.?sales\s+package\b/i,
-];
-
-function detectIntent(message: string): 'generate_package' | 'followup' {
-  for (const pattern of PACKAGE_TRIGGERS) {
-    if (pattern.test(message)) return 'generate_package';
-  }
-  return 'followup';
-}
-
-const CHAT_SYSTEM_PROMPT = `You are Partner Growth Copilot, an expert IBM Pre-Sales AI Assistant built for IBM Business Partners and Solution Engineers.
-
-You help IBM sales teams with:
-- Analyzing deal risks and objections
-- Explaining IBM product architecture and capabilities
-- Suggesting pilot strategies and POC scope
-- Answering questions about IBM watsonx, Red Hat, IBM Cloud, and IBM industry solutions
-- Refining and adjusting previously generated proposals
-
-You have access to the conversation history below. Use it to give precise, contextually relevant answers.
-
-When answering:
-- Be concise and direct — answer exactly what was asked
-- Use bullet points for lists (use markdown: - item)
-- Use **bold** for IBM product names
-- Use markdown tables where useful (| Col | Col |)
-- Do NOT regenerate the full proposal unless explicitly asked
-- Do NOT say "I'm sorry" or "I can't" — always give your best answer
-
-If the user asks about risks → list the specific technical and commercial risks for THIS deal
-If the user asks to adjust budget → propose a revised scope and tradeoffs
-If the user asks about a product → explain it in the context of their deal
-`;
+// Configure the IAM Token Manager for Orchestrate API
+const tokenManager = new IamTokenManager({
+  apikey: config.orchestrateApiKey,
+});
 
 router.get('/api/chat-service', (req: Request, res: Response): void => {
-  res.json({ status: 'online', model: config.watsonxModelId });
+  res.json({ status: 'online', mode: 'orchestrate-proxy', agent: config.orchestrateAgentId });
 });
 
 router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promise<void> => {
@@ -62,38 +22,24 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
     return;
   }
 
-  const intent = detectIntent(message.trim());
-
-  if (intent === 'generate_package') {
-    try {
-      const packageData = await watsonxService.generateFullOpportunityPackage({
-        raw_input: message.trim(),
-        industry: detectIndustry(message.trim()),
-        account_name: extractAccountName(message.trim()),
-      });
-
-      res.json({
-        role: 'assistant',
-        type: 'proposal',
-        content: packageData.proposal?.proposal || '',
-        package_data: packageData,
-        intent: 'generate_package',
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: 'Generation failed', message: err.message });
-    }
-    return;
-  }
-
   try {
-    const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: CHAT_SYSTEM_PROMPT },
-    ];
+    const token = await tokenManager.getToken();
+    
+    // Construct the Orchestrate endpoint based on common Watsonx API patterns
+    const baseUrl = config.orchestrateHostUrl.replace(/\/$/, '');
+    const agentId = config.orchestrateAgentId;
+    
+    // Some WxO environments use /v1/orchestrate/{agentId}/chat/completions or similar. 
+    // Adjust path if your deployment differs.
+    const orchestrateUrl = `${baseUrl}/v1/orchestrate/${agentId}/chat/completions`;
 
+    const messages = [];
+    
+    // Include the context if it's a follow-up conversation
     if (conversation_context) {
       messages.push({
         role: 'system',
-        content: `Deal Context (previously generated package):\n${conversation_context}`,
+        content: `Deal Context (previously generated package):\n${conversation_context}`
       });
     }
 
@@ -103,47 +49,107 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
         messages.push({ role: turn.role, content: String(turn.content) });
       }
     }
-
     messages.push({ role: 'user', content: message.trim() });
 
-    const service = new WatsonXAI({
-      version: config.watsonxVersion,
-      serviceUrl: config.watsonxServiceUrl,
-      authenticator: new IamAuthenticator({ apikey: config.watsonxApiKey }),
+    console.log(`[Proxy] Sending message to Orchestrate Agent ${agentId}...`);
+    
+    const response = await fetch(orchestrateUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        messages,
+        stream: false,
+        agentEnvironmentId: config.orchestrateEnvironmentId
+      })
     });
 
-    const response = await service.textChat({
-      messages,
-      modelId: config.watsonxModelId,
-      projectId: config.watsonxProjectId,
-      maxTokens: 800,
-    });
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Orchestrate API Error]', response.status, errText);
+      res.status(response.status).json({ error: 'Orchestrate Agent Error', details: errText });
+      return;
+    }
 
-    const rawContent = response.result?.choices?.[0]?.message?.content || '';
+    const data = await response.json();
+    const rawContent = data.choices?.[0]?.message?.content || '';
+    
+    console.log('[Proxy] Received response from Orchestrate Agent');
 
-    res.json({
-      role: 'assistant',
-      type: 'followup',
-      content: rawContent.trim(),
-      intent: 'followup',
-    });
+    // Attempt to parse out structured data if Orchestrate returned a JSON payload
+    let parsedPackage = null;
+    let isProposal = false;
+    let isEmail = false;
+
+    // Check if Orchestrate generated a package based on the text or embedded JSON
+    try {
+      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const potentialJson = jsonMatch[1] || jsonMatch[0];
+        const parsed = JSON.parse(potentialJson);
+        if (parsed.proposal || parsed.handoff_summary || parsed.crm_stub || parsed.recommended_ibm_stack) {
+          parsedPackage = parsed;
+          isProposal = true;
+        } else if (parsed.email_body || parsed.subject) {
+          parsedPackage = parsed;
+          isEmail = true;
+        }
+      }
+    } catch(e) {
+      // Not structured JSON or unparseable, handle as regular text
+    }
+
+    // Heuristic fallbacks if JSON parsing failed but structure is detected
+    if (!parsedPackage) {
+      if (rawContent.includes('Solution Name:') || rawContent.includes('Recommended IBM Stack') || rawContent.includes('### 1. CRM Opportunity Stub')) {
+        isProposal = true;
+        // The UI's parseMarkdownToHtml will handle raw markdown rendering if we just pass it in proposal text
+        parsedPackage = {
+          proposal: {
+            proposal: rawContent
+          }
+        };
+      } else if (rawContent.includes('Subject:') && (rawContent.includes('Dear') || rawContent.includes('Hi'))) {
+        isEmail = true;
+        parsedPackage = {
+          email_body: rawContent
+        };
+      }
+    }
+
+    if (isProposal) {
+      res.json({
+        role: 'assistant',
+        type: 'proposal',
+        assistant_message: parsedPackage?.proposal?.proposal || rawContent,
+        content: rawContent,
+        package_data: parsedPackage,
+        intent: 'generate_package'
+      });
+    } else if (isEmail) {
+      res.json({
+        role: 'assistant',
+        type: 'email',
+        assistant_message: rawContent,
+        content: rawContent,
+        email_data: parsedPackage,
+        intent: 'draft_email'
+      });
+    } else {
+      res.json({
+        role: 'assistant',
+        type: 'followup',
+        content: rawContent,
+        intent: 'followup'
+      });
+    }
+
   } catch (err: any) {
-    res.status(500).json({ error: 'Chat failed', message: err.message });
+    console.error('[chatRoutes Proxy Error]', err);
+    res.status(500).json({ error: 'Proxy failed', message: err.message });
   }
 });
-
-function detectIndustry(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('retail') || lower.includes('e-commerce')) return 'retail';
-  if (lower.includes('manufactur') || lower.includes('industrial')) return 'manufacturing';
-  if (lower.includes('health') || lower.includes('hospital') || lower.includes('patient')) return 'healthcare';
-  if (lower.includes('finance') || lower.includes('bank') || lower.includes('insurance')) return 'financial';
-  return 'general';
-}
-
-function extractAccountName(input: string): string {
-  const match = input.match(/Customer\s*:\s*([^;,\n]+)/i);
-  return match ? match[1].trim() : 'Customer Account';
-}
 
 export default router;

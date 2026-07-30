@@ -186,8 +186,11 @@ async function sendChatMessage() {
       if (pdfBtn) pdfBtn.style.display = 'inline-flex';
 
       autoSaveConversation(text, data.package_data);
+    } else if (data.type === 'email') {
+      appendEmailCard(data.email_data || { subject: 'Executive Follow-Up Email', email_body: data.content });
+      chatHistory.push({ role: 'assistant', content: data.content || '' });
     } else {
-      appendAssistantBubble(data.content || 'Sorry, I could not generate a response.');
+      appendAssistantBubble(data.assistant_message || data.content || 'Sorry, I could not generate a response.');
       chatHistory.push({ role: 'assistant', content: data.content || '' });
     }
   } catch (err) {
@@ -321,6 +324,63 @@ function appendProposalCard(pkg) {
     </div>`;
   messages.appendChild(row);
   scrollToBottom();
+}
+
+function appendEmailCard(emailData) {
+  const messages = document.getElementById('chatMessages');
+  if (!messages || !emailData) return;
+
+  const subject = sanitizeText(emailData.subject) || 'Executive Follow-Up Email';
+  const rawBody = emailData.email_body || emailData.content || '';
+  const bodyHtml = parseMarkdownToHtml(rawBody);
+
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--assistant';
+  row.innerHTML = `
+    <div class="chat-bubble--assistant">
+      <div class="assistant-header">
+        <div class="assistant-avatar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="assistant-name">Partner Growth Copilot — Executive Follow-Up Email</span>
+      </div>
+
+      <div style="background: var(--bg-inset); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ibm-blue); margin-bottom: 4px;">Subject</div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${escapeHtml(subject)}</div>
+      </div>
+
+      <div class="formatted-content" style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">${bodyHtml}</div>
+
+      <div class="proposal-actions">
+        <button class="proposal-action-btn primary" onclick="copyEmailText('${safeEncodeString(subject)}', '${safeEncodeString(rawBody)}')">
+          📋 Copy Email
+        </button>
+        <button class="proposal-action-btn" onclick="downloadPdf()">
+          Download PDF
+        </button>
+        <button class="proposal-action-btn" onclick="downloadWord()" style="margin-left:auto;">
+          Word (.docx)
+        </button>
+      </div>
+    </div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+}
+
+function safeEncodeString(str) {
+  return encodeURIComponent(str || '');
+}
+
+function copyEmailText(encodedSubject, encodedBody) {
+  const subject = decodeURIComponent(encodedSubject);
+  const body = decodeURIComponent(encodedBody);
+  const fullText = `Subject: ${subject}\n\n${body}`;
+  navigator.clipboard.writeText(fullText).then(() => {
+    alert('Executive email copied to clipboard!');
+  }).catch(() => {
+    alert('Subject: ' + subject);
+  });
 }
 
 function appendErrorBubble(message) {
@@ -676,22 +736,15 @@ function boldInline(text) {
 
 function sanitizeText(input) {
   if (!input) return '';
-  let str = String(input).trim();
+  let str = typeof input === 'object'
+    ? (input.proposal ? (typeof input.proposal === 'string' ? input.proposal : (input.proposal.proposal || '')) : input.email_body || input.summary || JSON.stringify(input))
+    : String(input).trim();
 
-  if (typeof input === 'object') {
-    if (input.proposal) str = typeof input.proposal === 'string' ? input.proposal : (input.proposal.proposal || '');
-    else if (input.email_body) str = input.email_body;
-    else if (input.summary) str = input.summary;
-  }
+  str = str.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
 
-  str = str.replace(/```json/gi, '').replace(/```/g, '').trim();
-  str = str.replace(/^\{\s*"proposal"\s*:\s*"/i, '')
-           .replace(/^"proposal"\s*:\s*"/i, '')
-           .replace(/^\{\s*"email_body"\s*:\s*"/i, '');
-
-  if (str.includes('"email_body"') || str.includes('"proposal"') || str.startsWith('{')) {
+  if (str.includes('"email_body"') || str.includes('"proposal"') || str.includes('"solution_name"') || str.startsWith('{')) {
     try {
-      const match = str.match(/"(email_body|proposal)"\s*:\s*"([\s\S]*?)"(?=\s*\}|\s*,\s*")/);
+      const match = str.match(/"(email_body|proposal)"\s*:\s*"([\s\S]*?)"(?=\s*,\s*"|\s*\}$)/);
       if (match && match[2]) {
         str = match[2];
       } else {
@@ -700,13 +753,18 @@ function sanitizeText(input) {
         else if (parsed.email_body) str = parsed.email_body;
         else if (parsed.summary) str = parsed.summary;
       }
-    } catch(e) {}
+    } catch(e) {
+      str = str
+        .replace(/",\s*"solution_name"[\s\S]*/i, '')
+        .replace(/^\{\s*"(proposal|email_body)"\s*:\s*"/i, '')
+        .replace(/",\s*"recommended_ibm_stack"[\s\S]*/i, '')
+        .replace(/\s*\}\s*$/, '');
+    }
   }
 
   return str
     .replace(/\\n/g, '\n')
     .replace(/\\"/g, '"')
-    .replace(/\\/g, '')
     .replace(/^"|"$/g, '')
     .trim();
 }

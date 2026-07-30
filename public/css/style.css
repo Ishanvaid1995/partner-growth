@@ -614,8 +614,17 @@ body {
 .formatted-content ol { list-style-type: decimal; }
 
 /* Markdown Tables */
-.table-responsive { overflow-x: auto; margin: 14px 0; border-radius: var(--radius); border: 1px solid var(--border-light); }
-.md-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 14px 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+}
+.md-table { width: 100%; min-width: 440px; border-collapse: collapse; font-size: 13px; }
 .md-table thead tr { background: var(--ibm-blue); }
 .md-table th {
   padding: 10px 14px;
@@ -813,6 +822,11 @@ body {
   .mobile-close-icon { display: block; }
   .mobile-menu-btn { display: flex; }
 
+  .nav-left { gap: 8px; flex: 1; min-width: 0; }
+  .brand-text { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .nav-right { flex-shrink: 0; gap: 8px; }
+  .nav-right a { font-size: 12px !important; }
+
   .welcome-title { font-size: 22px; }
   .welcome-sub { font-size: 14px; }
   .welcome-screen { padding: 40px 16px 24px; }
@@ -829,19 +843,16 @@ body {
 }
 
 /* ============================================================
-   WATSON ORCHESTRATE EMBED — Prevent invisible overlay from
-   blocking all page clicks. The WXO widget injects a
-   full-viewport transparent div into #root. We allow pointer
-   events only on actual WXO child elements (button, panel),
-   not on any phantom backdrop.
+   WATSON ORCHESTRATE EMBED — Floating Widget Overlay
    ============================================================ */
 #root {
   pointer-events: none !important;
   position: fixed !important;
-  bottom: 0 !important;
-  right: 0 !important;
-  /* do NOT set width/height so WXO widget can size itself */
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 9999 !important;
 }
+
 /* Restore pointer events for all actual WXO UI elements */
 #root > *,
 #root button,

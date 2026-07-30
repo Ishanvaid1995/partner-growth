@@ -199,38 +199,115 @@ function buildDownloadUrl(req: Request, fileName: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/downloads/${fileName}`;
 }
 
+function extractStructuredFromRawText(rawText: string) {
+  if (!rawText) return {};
+  const clean = cleanText(rawText);
+
+  let solution_name = '';
+  const solMatch = clean.match(/Solution Name:\s*([^\n]+)/i) ||
+                   clean.match(/###?\s*5?\.\s*IBM Solution Proposal Blueprint\s*\n+([^\n]+)/i) ||
+                   clean.match(/###?\s*1?\.\s*([^\n]+Solution[^\n]*)/i);
+  if (solMatch && solMatch[1]) {
+    solution_name = solMatch[1].trim().replace(/^[*#\s]+|[*#\s]+$/g, '');
+  }
+
+  const stackItems: string[] = [];
+  const stackMatch = clean.match(/(?:Recommended IBM Stack|IBM Stack|Recommended Stack)[\s\S]*?(?=\n\n|\n[A-Z0-9#]|$)/i);
+  if (stackMatch) {
+    const lines = stackMatch[0].split('\n');
+    for (const l of lines) {
+      const item = l.replace(/^[-*•\d.]+\s*/, '').trim();
+      if (item && !/Recommended IBM Stack|IBM Stack|Architecture Overview/i.test(item) && item.length < 80) {
+        stackItems.push(item);
+      }
+    }
+  }
+
+  if (stackItems.length === 0) {
+    const knownProducts = [
+      'IBM Watson IoT', 'Watson IoT', 'IBM Cloud Pak for Data', 'Cloud Pak for Data',
+      'IBM Watson Studio', 'Watson Studio', 'IBM Cloud Pak for Automation', 'Cloud Pak for Automation',
+      'Red Hat OpenShift', 'IBM watsonx.ai', 'IBM watsonx Orchestrate', 'IBM watsonx.data',
+      'IBM App Connect', 'IBM MQ', 'IBM Instana'
+    ];
+    for (const prod of knownProducts) {
+      if (new RegExp(`\\b${prod.replace('.', '\\.')}\\b`, 'i').test(clean)) {
+        if (!stackItems.includes(prod)) stackItems.push(prod);
+      }
+    }
+  }
+
+  let account_name = '';
+  const accMatch = clean.match(/(?:Customer|Account Name|Account):\s*([^\n;,\.]+)/i);
+  if (accMatch && accMatch[1]) {
+    account_name = accMatch[1].trim();
+  }
+
+  const nextSteps: string[] = [];
+  const stepsMatch = clean.match(/(?:Next Steps|Implementation Roadmap)[\s\S]*?(?=\n\n|\n[A-Z0-9#]|$)/i);
+  if (stepsMatch) {
+    const lines = stepsMatch[0].split('\n');
+    for (const l of lines) {
+      const item = l.replace(/^[-*•\d.]+\s*/, '').trim();
+      if (item && !/Next Steps|Implementation Roadmap|Risks/i.test(item) && item.length < 120) {
+        nextSteps.push(item);
+      }
+    }
+  }
+
+  const risks: string[] = [];
+  const risksMatch = clean.match(/(?:Risks|Risk & Mitigation)[\s\S]*?(?=\n\n|\n[A-Z0-9#]|$)/i);
+  if (risksMatch) {
+    const lines = risksMatch[0].split('\n');
+    for (const l of lines) {
+      const item = l.replace(/^[-*•\d.]+\s*/, '').trim();
+      if (item && !/Risks|Risk & Mitigation/i.test(item) && item.length < 120) {
+        risks.push(item);
+      }
+    }
+  }
+
+  return {
+    solution_name: solution_name || undefined,
+    recommended_ibm_stack: stackItems.length > 0 ? stackItems : undefined,
+    account_name: account_name || undefined,
+    next_steps: nextSteps.length > 0 ? nextSteps : undefined,
+    risks: risks.length > 0 ? risks : undefined,
+  };
+}
+
 const handlePdfGeneration = async (req: Request, res: Response): Promise<void> => {
   try {
     cleanupOldDownloads();
     let payload = req.body || {};
+    const rawString = typeof payload === 'string' ? payload : (payload.raw_input || payload.input || payload.deal_context || payload.proposal || JSON.stringify(payload));
+    const extracted = extractStructuredFromRawText(rawString);
 
     if ((payload.raw_input || payload.input || payload.deal_context) && !payload.proposal) {
-      const rawInput = payload.raw_input || payload.input || payload.deal_context;
-      try {
-        payload = await watsonxService.generateFullOpportunityPackage({
-          raw_input: rawInput,
-          industry: payload.industry,
-          account_name: payload.account_name,
-        });
-      } catch(e) {}
+      console.warn('[pdfRoutes] Missing proposal in payload, using raw_input as deal_context without regeneration');
     }
 
-    const proposal = payload.proposal || {
-      solution_name: 'IBM Pre-Sales Solution Proposal',
-      recommended_ibm_stack: ['IBM watsonx.ai', 'watsonx Orchestrate', 'Red Hat OpenShift'],
-      business_outcomes: ['Faster Time-to-Market', 'Enhanced Predictive Accuracy'],
-      proposal: 'IBM watsonx solution providing AI analytics, automated orchestration, and enterprise security governance.',
-    };
+    const proposal = payload.proposal || {};
+    if (extracted.solution_name && (!proposal.solution_name || proposal.solution_name === 'IBM Pre-Sales Solution Proposal' || proposal.solution_name === 'IBM watsonx Enterprise Solution')) {
+      proposal.solution_name = extracted.solution_name;
+    }
+    if (extracted.recommended_ibm_stack && extracted.recommended_ibm_stack.length > 0) {
+      proposal.recommended_ibm_stack = extracted.recommended_ibm_stack;
+    }
+    if (!proposal.solution_name) proposal.solution_name = extracted.solution_name || 'IBM Pre-Sales Solution Proposal';
+    if (!proposal.recommended_ibm_stack || proposal.recommended_ibm_stack.length === 0) {
+      proposal.recommended_ibm_stack = ['IBM watsonx.ai', 'watsonx Orchestrate', 'Red Hat OpenShift'];
+    }
 
     const handoff_summary = payload.handoff_summary || {
-      summary: 'Technical architecture incorporates watsonx.ai model serving with watsonx Orchestrate skill integrations.',
-      next_steps: ['Conduct technical discovery workshop', 'Provision IBM Cloud sandbox environment', 'Deploy pilot MVP'],
-      risks: ['Data schema compatibility with legacy ERP', 'API rate limiting during peak usage'],
+      summary: 'Technical architecture incorporates IBM service integration and cloud runtime deployment.',
+      next_steps: extracted.next_steps || ['Conduct technical discovery workshop', 'Provision IBM Cloud sandbox environment', 'Deploy pilot MVP'],
+      risks: extracted.risks || ['Data schema compatibility with legacy ERP', 'API rate limiting during peak usage'],
     };
 
     const crm_stub = payload.crm_stub || {
       opportunity_name: proposal.solution_name || 'IBM Pre-Sales Opportunity',
-      account_name: payload.account_name || 'Customer Account',
+      account_name: payload.account_name || extracted.account_name || 'Customer Account',
       stage: 'Qualification',
       estimated_value: '$150,000 USD',
       notes: 'Qualified pre-sales deal context generated by Partner Growth Copilot.',
@@ -239,10 +316,24 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
     const deal_score = payload.deal_score || {
       score: 85,
       reasoning: ['Strong business alignment'],
-      missing_fields: ['Executive sponsor title'],
+      missing_fields: [],
       recommended_path: 'Proceed to architecture blueprint phase',
       next_best_actions: ['Schedule architecture review'],
     };
+
+    const followup_email = payload.followup_email || {
+      subject: payload.subject || `Follow-up: ${proposal.solution_name || 'IBM Solution Proposal'} Overview`,
+      email_body: payload.email_body || 'As discussed, IBM offers an enterprise-grade solution tailored to your operational goals.',
+    };
+
+    console.log('[PDF Debug Payload]', JSON.stringify({
+      solution_name: proposal.solution_name,
+      recommended_ibm_stack: proposal.recommended_ibm_stack,
+      crm_stub,
+      deal_score,
+      followup_email,
+      handoff_summary,
+    }, null, 2));
 
     const fileName = `partner-growth-package-${Date.now()}_${crypto.randomBytes(4).toString('hex')}.pdf`;
     const filePath = path.join(downloadsDir, fileName);
@@ -257,13 +348,6 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
     const execSummary = extractExecutiveSummary(rawProposalText);
     const proposalSections = parseProposalSections(rawProposalText);
 
-    const stackStr = Array.isArray(proposal.recommended_ibm_stack)
-      ? proposal.recommended_ibm_stack.join(', ')
-      : 'IBM watsonx.ai, watsonx Orchestrate';
-    const outcomesStr = Array.isArray(proposal.business_outcomes)
-      ? proposal.business_outcomes.join(', ')
-      : 'Optimized operations, improved efficiency';
-
     doc.rect(0, 0, 595, 70).fill('#0f62fe');
     doc.fillColor('#ffffff').fontSize(20).font('Helvetica-Bold').text('Partner Growth Copilot', 50, 20);
     doc.fillColor('#dbeafe').fontSize(10).font('Helvetica').text('IBM Enterprise Pre-Sales Solution Package', 50, 44);
@@ -274,58 +358,69 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
 
     let y = 90;
 
-    doc.fillColor('#0f62fe').fontSize(14).font('Helvetica-Bold').text('1. IBM Solution Proposal', 50, y);
-    y += 22;
-
-    if (proposal.solution_name) {
-      doc.fillColor('#0f172a').fontSize(12).font('Helvetica-Bold').text(cleanText(proposal.solution_name), 50, y);
-      y += 18;
-    }
-
-    if (execSummary) {
-      const boxHeight = Math.min(120, Math.max(48, Math.ceil(execSummary.length / 85) * 14 + 16));
-      doc.rect(50, y, 495, boxHeight).fill('#eff6ff');
-      doc.rect(50, y, 4, boxHeight).fill('#0f62fe');
-      doc.fillColor('#1e293b').fontSize(9.5).font('Helvetica')
-        .text(execSummary, 64, y + 10, { width: 468, height: boxHeight - 20, lineGap: 3 });
-      y += boxHeight + 16;
-    }
-
-    y = drawPdfTable(
-      doc, y,
-      ['Architecture Layer', 'IBM Technology / Capability', 'Target Business Value'],
+    // 1. CRM Opportunity Stub
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('1. CRM Opportunity Stub', 50, y);
+    y += 18;
+    y = drawPdfTable(doc, y,
+      ['CRM Field', 'Value'],
       [
-        ['AI & Analytics', stackStr, outcomesStr],
-        ['Orchestration', 'watsonx Orchestrate Agent', 'Automated workflow execution & CRM sync'],
-        ['Platform & Cloud', 'Red Hat OpenShift', 'Hybrid cloud deployment & security governance'],
+        ['Account Name', cleanText(crm_stub.account_name || 'Customer Account')],
+        ['Opportunity Name', cleanText(crm_stub.opportunity_name || proposal.solution_name || 'IBM Pre-Sales Opportunity')],
+        ['Estimated Value', crm_stub.estimated_value || '$250,000 USD'],
+        ['Sales Stage', crm_stub.stage || 'Qualification'],
+        ['Notes', cleanText(crm_stub.notes || 'Qualified pre-sales deal context generated by Partner Growth Copilot.')],
       ],
-      [120, 200, 175], 50
+      [150, 345], 50
     );
 
-    for (const section of proposalSections) {
-      if (!section.content || section.content.length < 10) continue;
-      if (section.title.toLowerCase().includes('executive summary')) continue;
-
-      y += 12;
-      if (y > 700) { doc.addPage(); y = 50; }
-
-      doc.fillColor('#0f172a').fontSize(11).font('Helvetica-Bold').text(section.title, 50, y);
-      y += 16;
-
-      const text = section.content.slice(0, 600);
-      doc.fillColor('#334155').fontSize(9.5).font('Helvetica').text(text, 50, y, { width: 495, lineGap: 3 });
-      y += doc.heightOfString(text, { width: 495 }) + 8;
-    }
-
+    // 2. Deal Readiness Score
     y += 10;
-    if (y > 700) { doc.addPage(); y = 50; }
-    doc.fillColor('#0f62fe').fontSize(14).font('Helvetica-Bold').text('2. Technical Handoff & Implementation', 50, y);
-    y += 22;
+    if (y > 680) { doc.addPage(); y = 50; }
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('2. Deal Readiness Score', 50, y);
+    y += 18;
+
+    const score = deal_score.score || 85;
+    const badgeBg = score >= 80 ? '#ecfdf5' : score >= 60 ? '#eff6ff' : '#fefce8';
+    const badgeText = score >= 80 ? '#047857' : score >= 60 ? '#1d4ed8' : '#b45309';
+    doc.rect(50, y, 495, 32).fill(badgeBg);
+    doc.rect(50, y, 495, 32).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
+    doc.fillColor(badgeText).fontSize(12).font('Helvetica-Bold')
+      .text(`Score: ${score} / 100 — ${score >= 80 ? 'Deal Ready ✓ (Move to Executive Presentation)' : 'Promising Opportunity'}`, 64, y + 9);
+    y += 42;
+
+    const missing = Array.isArray(deal_score.missing_fields) && deal_score.missing_fields.length > 0 ? deal_score.missing_fields.join(', ') : 'None';
+    const reasoningStr = Array.isArray(deal_score.reasoning) ? deal_score.reasoning.join(' ') : (deal_score.reasoning || 'Industry, business problem, budget, timeline, and clear use-case defined.');
+    y = drawPdfTable(doc, y,
+      ['Evaluation Metric', 'Details'],
+      [
+        ['Missing Fields', missing],
+        ['Reasoning', cleanText(reasoningStr)],
+        ['Recommended Path', cleanText(deal_score.recommended_path || 'Proposal-ready — move to executive presentation.')],
+      ],
+      [150, 345], 50
+    );
+
+    // 3. Executive Follow-Up Email
+    y += 10;
+    if (y > 680) { doc.addPage(); y = 50; }
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('3. Executive Follow-Up Email', 50, y);
+    y += 18;
+
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text(`Subject: ${cleanText(followup_email.subject)}`, 50, y);
+    y += 16;
+
+    const emailBodyClean = cleanText(followup_email.email_body);
+    doc.fillColor('#334155').fontSize(9).font('Helvetica').text(emailBodyClean, 50, y, { width: 495, lineGap: 3 });
+    y += doc.heightOfString(emailBodyClean, { width: 495 }) + 16;
+
+    // 4. Technical Handoff Summary
+    if (y > 680) { doc.addPage(); y = 50; }
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('4. Technical Handoff Summary', 50, y);
+    y += 18;
 
     if (handoff_summary.summary) {
-      const summaryClean = cleanText(handoff_summary.summary);
-      doc.fillColor('#1e293b').fontSize(9.5).font('Helvetica').text(summaryClean, 50, y, { width: 495, lineGap: 3 });
-      y += doc.heightOfString(summaryClean, { width: 495 }) + 14;
+      doc.fillColor('#1e293b').fontSize(9).font('Helvetica').text(cleanText(handoff_summary.summary), 50, y, { width: 495, lineGap: 3 });
+      y += doc.heightOfString(cleanText(handoff_summary.summary), { width: 495 }) + 10;
     }
 
     const steps = Array.isArray(handoff_summary.next_steps) ? handoff_summary.next_steps : ['Conduct discovery workshop'];
@@ -333,56 +428,60 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
     const handoffRows: string[][] = [];
     const maxRows = Math.max(steps.length, risks.length);
     for (let i = 0; i < maxRows; i++) {
-      handoffRows.push([`Phase ${i + 1}`, steps[i] || '—', risks[i] || 'Standard risk controls applied']);
+      handoffRows.push([`Step ${i + 1}`, steps[i] || '—', risks[i] || 'Standard risk controls applied']);
     }
 
     y = drawPdfTable(doc, y,
-      ['Milestone', 'Implementation Action Step', 'Risk & Mitigation Strategy'],
-      handoffRows, [80, 215, 200], 50
+      ['Phase', 'Next Steps', 'Risks & Mitigations'],
+      handoffRows, [60, 235, 200], 50
     );
 
-    if (y > 680) { doc.addPage(); y = 50; }
+    // 5. IBM Solution Proposal Blueprint
+    if (y > 640) { doc.addPage(); y = 50; }
     y += 10;
-    doc.fillColor('#0f62fe').fontSize(14).font('Helvetica-Bold').text('3. CRM Opportunity Summary Record', 50, y);
-    y += 22;
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('5. IBM Solution Proposal Blueprint', 50, y);
+    y += 18;
 
-    y = drawPdfTable(doc, y,
-      ['CRM Field', 'Details'],
-      [
-        ['Opportunity Name', cleanText(crm_stub.opportunity_name || proposal.solution_name || 'IBM Pre-Sales Opportunity')],
-        ['Account Name', cleanText(crm_stub.account_name || 'Customer Account')],
-        ['Sales Stage', crm_stub.stage || 'Qualification'],
-        ['Contract Value', crm_stub.estimated_value || '$150,000 USD'],
-        ['Opportunity Notes', cleanText(crm_stub.notes || 'Pre-sales opportunity created by Partner Growth Copilot.')],
-      ],
-      [150, 345], 50
-    );
+    if (proposal.solution_name) {
+      doc.fillColor('#0f172a').fontSize(11).font('Helvetica-Bold').text(`Solution Name: ${cleanText(proposal.solution_name)}`, 50, y);
+      y += 16;
+    }
 
-    if (y > 680) { doc.addPage(); y = 50; }
-    y += 10;
-    doc.fillColor('#0f62fe').fontSize(14).font('Helvetica-Bold').text('4. Deal Readiness Evaluation & Scorecard', 50, y);
-    y += 22;
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('Recommended IBM Stack', 50, y);
+    y += 14;
 
-    const score = deal_score.score || 85;
-    const badgeBg = score >= 80 ? '#ecfdf5' : score >= 60 ? '#eff6ff' : '#fefce8';
-    const badgeText = score >= 80 ? '#047857' : score >= 60 ? '#1d4ed8' : '#b45309';
-    doc.rect(50, y, 495, 36).fill(badgeBg);
-    doc.rect(50, y, 495, 36).strokeColor('#cbd5e1').lineWidth(0.5).stroke();
-    doc.fillColor(badgeText).fontSize(14).font('Helvetica-Bold')
-      .text(`Readiness Score: ${score}/100 — ${score >= 80 ? 'Deal Ready ✓' : 'Promising Opportunity'}`, 64, y + 10);
-    y += 50;
+    const stackList = Array.isArray(proposal.recommended_ibm_stack) && proposal.recommended_ibm_stack.length > 0
+      ? proposal.recommended_ibm_stack
+      : ['IBM Watson IoT', 'IBM Cloud Pak for Data', 'IBM Watson Studio', 'IBM Cloud Pak for Automation', 'Red Hat OpenShift'];
 
-    const missing = Array.isArray(deal_score.missing_fields) ? deal_score.missing_fields.join('; ') : 'None identified';
-    const actions = Array.isArray(deal_score.next_best_actions) ? deal_score.next_best_actions.join('; ') : 'Schedule architecture review';
+    for (const prod of stackList) {
+      doc.fillColor('#0f62fe').fontSize(10).text('•', 56, y);
+      doc.fillColor('#1e293b').fontSize(9.5).font('Helvetica-Bold').text(cleanText(prod), 68, y);
+      y += 14;
+    }
+    y += 8;
 
-    y = drawPdfTable(doc, y,
-      ['Evaluation Metric', 'Details & Strategic Recommendations'],
-      [
-        ['Missing Information', missing],
-        ['Recommended Next Actions', actions],
-      ],
-      [150, 345], 50
-    );
+    if (execSummary) {
+      const boxHeight = Math.min(100, Math.max(40, Math.ceil(execSummary.length / 85) * 12 + 14));
+      doc.rect(50, y, 495, boxHeight).fill('#eff6ff');
+      doc.rect(50, y, 4, boxHeight).fill('#0f62fe');
+      doc.fillColor('#1e293b').fontSize(9).font('Helvetica')
+        .text(execSummary, 64, y + 8, { width: 468, height: boxHeight - 16, lineGap: 2 });
+      y += boxHeight + 14;
+    }
+
+    for (const section of proposalSections) {
+      if (!section.content || section.content.length < 10) continue;
+      if (section.title.toLowerCase().includes('executive summary')) continue;
+
+      if (y > 700) { doc.addPage(); y = 50; }
+      doc.fillColor('#0f172a').fontSize(10.5).font('Helvetica-Bold').text(section.title, 50, y);
+      y += 14;
+
+      const text = section.content.slice(0, 600);
+      doc.fillColor('#334155').fontSize(9).font('Helvetica').text(text, 50, y, { width: 495, lineGap: 3 });
+      y += doc.heightOfString(text, { width: 495 }) + 8;
+    }
 
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 0; i < pageCount; i++) {
@@ -429,34 +528,34 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
   try {
     cleanupOldDownloads();
     let payload = req.body || {};
+    const rawString = typeof payload === 'string' ? payload : (payload.raw_input || payload.input || payload.deal_context || payload.proposal || JSON.stringify(payload));
+    const extracted = extractStructuredFromRawText(rawString);
 
     if ((payload.raw_input || payload.input || payload.deal_context) && !payload.proposal) {
-      const rawInput = payload.raw_input || payload.input || payload.deal_context;
-      try {
-        payload = await watsonxService.generateFullOpportunityPackage({
-          raw_input: rawInput,
-          industry: payload.industry,
-          account_name: payload.account_name,
-        });
-      } catch(e) {}
+      console.warn('[pdfRoutes] Missing proposal in payload, using raw_input as deal_context without regeneration');
     }
 
-    const proposal = payload.proposal || {
-      solution_name: 'IBM Pre-Sales Solution Proposal',
-      recommended_ibm_stack: ['IBM watsonx.ai', 'watsonx Orchestrate', 'Red Hat OpenShift'],
-      business_outcomes: ['Improved efficiency', 'Reduced costs'],
-      proposal: 'IBM watsonx solution providing AI analytics and automated orchestration.',
-    };
+    const proposal = payload.proposal || {};
+    if (extracted.solution_name && (!proposal.solution_name || proposal.solution_name === 'IBM Pre-Sales Solution Proposal' || proposal.solution_name === 'IBM watsonx Enterprise Solution')) {
+      proposal.solution_name = extracted.solution_name;
+    }
+    if (extracted.recommended_ibm_stack && extracted.recommended_ibm_stack.length > 0) {
+      proposal.recommended_ibm_stack = extracted.recommended_ibm_stack;
+    }
+    if (!proposal.solution_name) proposal.solution_name = extracted.solution_name || 'IBM Pre-Sales Solution Proposal';
+    if (!proposal.recommended_ibm_stack || proposal.recommended_ibm_stack.length === 0) {
+      proposal.recommended_ibm_stack = ['IBM watsonx.ai', 'watsonx Orchestrate', 'Red Hat OpenShift'];
+    }
 
     const handoff = payload.handoff_summary || {
-      summary: 'Technical architecture incorporates watsonx.ai model serving.',
-      next_steps: ['Conduct discovery workshop', 'Provision IBM Cloud sandbox'],
-      risks: ['Data integration latency', 'Change management'],
+      summary: 'Technical architecture incorporates IBM service integration.',
+      next_steps: extracted.next_steps || ['Conduct discovery workshop', 'Provision IBM Cloud sandbox'],
+      risks: extracted.risks || ['Data integration latency', 'Change management'],
     };
 
     const crm = payload.crm_stub || {
       opportunity_name: proposal.solution_name || 'IBM Opportunity',
-      account_name: 'Customer Account',
+      account_name: payload.account_name || extracted.account_name || 'Customer Account',
       stage: 'Qualification',
       estimated_value: '$150,000 USD',
       notes: 'Pre-sales opportunity generated by Partner Growth Copilot.',
@@ -545,6 +644,15 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
       ],
     });
 
+    const followup = payload.followup_email || {
+      subject: payload.subject || `Follow-up: ${proposal.solution_name || 'IBM Solution Proposal'} Overview`,
+      email_body: payload.email_body || 'As discussed, IBM offers an enterprise-grade solution tailored to your operational goals.',
+    };
+
+    const stackList = Array.isArray(proposal.recommended_ibm_stack) && proposal.recommended_ibm_stack.length > 0
+      ? proposal.recommended_ibm_stack
+      : ['IBM Watson IoT', 'IBM Cloud Pak for Data', 'IBM Watson Studio', 'IBM Cloud Pak for Automation', 'Red Hat OpenShift'];
+
     const docChildren: any[] = [
       new Paragraph({
         children: [new TextRun({ text: 'Partner Growth Copilot', bold: true, size: 48, color: IBM_BLUE, font: 'Calibri' })],
@@ -556,34 +664,63 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
       }),
       new Paragraph({
         children: [new TextRun({ text: `Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, size: 20, color: '94A3B8', font: 'Calibri' })],
-        spacing: { after: 600 },
+        spacing: { after: 400 },
       }),
 
+      // 1. CRM Stub
       new Paragraph({
-        children: [new TextRun({ text: '1. IBM Solution Proposal', bold: true, size: 32, color: IBM_BLUE, font: 'Calibri' })],
+        children: [new TextRun({ text: '1. CRM Opportunity Stub', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
+        spacing: { before: 200, after: 120 },
+      }),
+      crmTable,
+      new Paragraph({ spacing: { after: 300 } }),
+
+      // 2. Deal Score
+      new Paragraph({
+        children: [new TextRun({ text: '2. Deal Readiness Score', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
         spacing: { before: 200, after: 120 },
       }),
       new Paragraph({
-        children: [new TextRun({ text: cleanText(proposal.solution_name || ''), bold: true, size: 26, color: DARK, font: 'Calibri' })],
-        spacing: { after: 160 },
+        children: [new TextRun({
+          text: `Score: ${deal_score.score || 85} / 100 — ${(deal_score.score || 85) >= 80 ? 'Deal Ready ✓' : 'Promising Opportunity'}`,
+          bold: true, size: 24,
+          color: (deal_score.score || 85) >= 80 ? '047857' : '1d4ed8',
+          font: 'Calibri',
+        })],
+        spacing: { after: 120 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Reasoning: ', bold: true, size: 20, font: 'Calibri', color: DARK }),
+          new TextRun({ text: Array.isArray(deal_score.reasoning) ? deal_score.reasoning.join(' ') : 'Deal context fully specified.', size: 20, font: 'Calibri', color: GRAY }),
+        ],
+        spacing: { after: 60 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Missing Fields: ', bold: true, size: 20, font: 'Calibri', color: DARK }),
+          new TextRun({ text: Array.isArray(deal_score.missing_fields) && deal_score.missing_fields.length > 0 ? deal_score.missing_fields.join(', ') : 'None', size: 20, font: 'Calibri', color: GRAY }),
+        ],
+        spacing: { after: 240 },
       }),
 
-      ...proposalSections.map(sec => [
-        new Paragraph({
-          children: [new TextRun({ text: sec.title, bold: true, size: 22, color: DARK, font: 'Calibri' })],
-          spacing: { before: 200, after: 80 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: cleanText(sec.content).slice(0, 800), size: 19, color: GRAY, font: 'Calibri' })],
-          spacing: { after: 120 },
-        }),
-      ]).flat(),
-
-      ibmStackTable,
-      new Paragraph({ spacing: { after: 300 } }),
-
+      // 3. Executive Follow-Up Email
       new Paragraph({
-        children: [new TextRun({ text: '2. Technical Handoff & Implementation', bold: true, size: 32, color: IBM_BLUE, font: 'Calibri' })],
+        children: [new TextRun({ text: '3. Executive Follow-Up Email', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
+        spacing: { before: 200, after: 120 },
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: `Subject: ${cleanText(followup.subject || '')}`, bold: true, size: 22, color: DARK, font: 'Calibri' })],
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: cleanText(followup.email_body || ''), size: 19, color: GRAY, font: 'Calibri' })],
+        spacing: { after: 300 },
+      }),
+
+      // 4. Technical Handoff Summary
+      new Paragraph({
+        children: [new TextRun({ text: '4. Technical Handoff Summary', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
         spacing: { before: 200, after: 120 },
       }),
       new Paragraph({
@@ -593,39 +730,35 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
       handoffTable,
       new Paragraph({ spacing: { after: 300 } }),
 
+      // 5. IBM Solution Proposal Blueprint
       new Paragraph({
-        children: [new TextRun({ text: '3. CRM Opportunity Record', bold: true, size: 32, color: IBM_BLUE, font: 'Calibri' })],
-        spacing: { before: 200, after: 120 },
-      }),
-      crmTable,
-      new Paragraph({ spacing: { after: 300 } }),
-
-      new Paragraph({
-        children: [new TextRun({ text: '4. Deal Readiness Scorecard', bold: true, size: 32, color: IBM_BLUE, font: 'Calibri' })],
+        children: [new TextRun({ text: '5. IBM Solution Proposal Blueprint', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
         spacing: { before: 200, after: 120 },
       }),
       new Paragraph({
-        children: [new TextRun({
-          text: `Readiness Score: ${deal_score.score || 85}/100 — ${(deal_score.score || 85) >= 80 ? 'Deal Ready ✓' : 'Promising Opportunity'}`,
-          bold: true, size: 26,
-          color: (deal_score.score || 85) >= 80 ? '047857' : '1d4ed8',
-          font: 'Calibri',
-        })],
-        spacing: { after: 160 },
+        children: [new TextRun({ text: `Solution Name: ${cleanText(proposal.solution_name || '')}`, bold: true, size: 24, color: DARK, font: 'Calibri' })],
+        spacing: { after: 120 },
       }),
       new Paragraph({
-        children: [
-          new TextRun({ text: 'Missing Information: ', bold: true, size: 20, font: 'Calibri', color: DARK }),
-          new TextRun({ text: Array.isArray(deal_score.missing_fields) ? deal_score.missing_fields.join('; ') : 'None', size: 20, font: 'Calibri', color: GRAY }),
-        ],
+        children: [new TextRun({ text: 'Recommended IBM Stack:', bold: true, size: 22, color: DARK, font: 'Calibri' })],
         spacing: { after: 80 },
       }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: 'Next Best Actions: ', bold: true, size: 20, font: 'Calibri', color: DARK }),
-          new TextRun({ text: Array.isArray(deal_score.next_best_actions) ? deal_score.next_best_actions.join('; ') : 'Schedule architecture review', size: 20, font: 'Calibri', color: GRAY }),
-        ],
-      }),
+      ...stackList.map((prod: string) => new Paragraph({
+        children: [new TextRun({ text: `• ${cleanText(prod)}`, bold: true, size: 20, color: IBM_BLUE, font: 'Calibri' })],
+        spacing: { after: 40 },
+      })),
+      new Paragraph({ spacing: { after: 160 } }),
+
+      ...proposalSections.map(sec => [
+        new Paragraph({
+          children: [new TextRun({ text: sec.title, bold: true, size: 22, color: DARK, font: 'Calibri' })],
+          spacing: { before: 160, after: 80 },
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: cleanText(sec.content).slice(0, 800), size: 19, color: GRAY, font: 'Calibri' })],
+          spacing: { after: 120 },
+        }),
+      ]).flat(),
 
       new Paragraph({
         children: [new TextRun({ text: 'Partner Growth Copilot | Powered by IBM watsonx.ai & watsonx Orchestrate', size: 16, color: '94A3B8', font: 'Calibri' })],

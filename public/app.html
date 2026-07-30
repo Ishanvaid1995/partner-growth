@@ -84,8 +84,6 @@
 
       <!-- MESSAGES SCROLL AREA -->
       <div class="chat-messages" id="chatMessages">
-
-        <!-- WELCOME SCREEN (shown when no messages) -->
         <div class="welcome-screen" id="welcomeScreen">
           <div class="welcome-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -107,7 +105,6 @@
             </button>
           </div>
         </div>
-
       </div>
 
       <!-- GUEST SAVE BANNER -->
@@ -197,37 +194,6 @@
     </div>
   </div>
 
-  <!-- IBM watsonx Orchestrate Embed -->
-  <div id="root"></div>
-
   <script src="/js/app.js"></script>
-
-  <script>
-    (function() {
-      var WXO_CONFIG = {
-        orchestrationID: "94acdb45fcec4cfe9fa1f2b4f4b116bb_dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66",
-        hostURL: "https://ca-tor.watson-orchestrate.cloud.ibm.com",
-        rootElementID: "root",
-        deploymentPlatform: "ibmcloud",
-        crn: "crn:v1:bluemix:public:watsonx-orchestrate:ca-tor:a/94acdb45fcec4cfe9fa1f2b4f4b116bb:dcf235a5-27f4-4e1c-bfb1-65b3e1cf5d66::",
-        chatOptions: {
-          agentId: "255fce2b-bf14-4c1a-8b55-2633e1ecbbce",
-          agentEnvironmentId: "d6d7e725-8c1b-401f-8bf0-8ebe14c4afcd"
-        }
-      };
-      window.wxOConfiguration = WXO_CONFIG;
-      setTimeout(function() {
-        var s = document.createElement('script');
-        s.src = WXO_CONFIG.hostURL + '/wxochat/wxoLoader.js?embed=true';
-        s.addEventListener('load', function() {
-          if (window.wxoLoader && typeof window.wxoLoader.init === 'function') {
-            try { window.wxoLoader.init(); } catch(e) { console.error('[PGC] wxoLoader.init error:', e); }
-          }
-        });
-        s.addEventListener('error', function() { console.error('[PGC] Failed to load wxoLoader.js'); });
-        document.head.appendChild(s);
-      }, 0);
-    })();
-  </script>
 </body>
 </html>

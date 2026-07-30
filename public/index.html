@@ -279,11 +279,84 @@
     }
 
     @media (max-width: 768px) {
-      .hero-title { font-size: 38px; }
-      .cta-group { flex-direction: column; width: 100%; max-width: 320px; }
-      .btn-app, .btn-arch { width: 100%; justify-content: center; }
-      .zen-cards { grid-template-columns: 1fr; }
-      .footer-inner { flex-direction: column; gap: 12px; }
+      .container { padding: 0 16px; }
+      header.zen-header { padding: 16px 0; }
+      .nav-inner {
+        height: 48px;
+        padding: 0 16px;
+        gap: 8px;
+      }
+      .brand-logo { width: 26px; height: 26px; }
+      .brand-name {
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .nav-links { gap: 12px; }
+      .nav-link { font-size: 12px; white-space: nowrap; }
+
+      main.zen-hero { padding: 36px 0 36px; }
+      .badge {
+        font-size: 10px;
+        padding: 4px 12px;
+        margin-bottom: 20px;
+        letter-spacing: 0.5px;
+      }
+      .hero-title {
+        font-size: 32px;
+        letter-spacing: -0.8px;
+        margin-bottom: 16px;
+        line-height: 1.18;
+        padding: 0;
+      }
+      .hero-statement {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 32px;
+        padding: 0;
+      }
+      .cta-group {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto 48px;
+        gap: 12px;
+        align-items: stretch;
+      }
+      .btn-app, .btn-arch {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+        font-size: 15px;
+        border-radius: 26px;
+      }
+      .zen-cards {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        width: 100%;
+      }
+      .zen-card {
+        padding: 20px 18px;
+        border-radius: 16px;
+      }
+      footer.zen-footer { padding: 24px 0; }
+      .footer-inner {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .brand-name {
+        max-width: 130px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .nav-links { gap: 8px; }
+      .nav-link { font-size: 11.5px; }
+      .hero-title { font-size: 26px; letter-spacing: -0.5px; }
+      .hero-statement { font-size: 13.5px; }
     }
   </style>
 </head>
