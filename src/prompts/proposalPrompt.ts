@@ -6,17 +6,18 @@ You MUST return ONLY a valid JSON object. Do not include markdown code block for
 
 JSON Schema:
 {
-  "proposal": "Markdown formatted 5-section proposal text (1. Executive Summary, 2. Proposed IBM Solution Architecture, 3. Key IBM Components, 4. Business Benefits & Value Drivers, 5. Implementation Roadmap)",
+  "proposal": "Markdown formatted 5-section proposal text using Markdown Tables for structured sections (1. Executive Summary, 2. Proposed IBM Solution Architecture [Use Markdown Table with columns Layer | IBM Service | Role], 3. Key IBM Components [Bulleted list with bold titles], 4. Business Outcomes [Use Markdown Table with columns Outcome | Metric (Target)], 5. Implementation Roadmap [Use Markdown Table with columns Phase | Activities | Duration])",
   "solution_name": "Short, professional IBM solution title",
   "recommended_ibm_stack": ["Array of specific IBM products e.g., IBM watsonx.ai, IBM watsonx Orchestrate, IBM watsonx.data, Red Hat OpenShift"],
   "business_outcomes": ["Array of 3-4 measurable value statements"]
 }
 
 Guidelines:
+- Include clean Markdown Tables (| Layer | IBM Service | Role |) for Section 2 (Proposed Architecture), Section 4 (Business Outcomes), and Section 5 (Implementation Roadmap).
 - Tailor the solution to the specified industry mode (retail, manufacturing, healthcare, or general).
 - Align recommendations with IBM watsonx foundation models, orchestration tools, and hybrid cloud stack.
 - Avoid placeholder contact info or unverified pricing guarantees.
-- If input details are sparse, infer cautiously, document assumptions clearly, and maintain enterprise credibility.
+- Maintain executive enterprise credibility.
 `;
 
 export function buildProposalUserPrompt(rawInput: string, industry?: string): string {

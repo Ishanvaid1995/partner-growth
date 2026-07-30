@@ -374,6 +374,30 @@
           }
         }
       }
+    },
+    "/api/generate-docx": {
+      "post": {
+        "summary": "Generate Downloadable Word (.docx) Package",
+        "description": "Generates an IBM-styled Word (.docx) document of the full pre-sales opportunity package and returns a direct absolute download URL.",
+        "operationId": "generate_docx_package",
+        "responses": {
+          "200": {
+            "description": "Word document package generated successfully"
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "summary": "Unified Conversational Chat & Package Generator",
+        "description": "Unified conversational endpoint handling pre-sales deal package generation and intelligent follow-up Q&A.",
+        "operationId": "unified_chat",
+        "responses": {
+          "200": {
+            "description": "Chat response generated successfully"
+          }
+        }
+      }
     }
   },
   "components": {

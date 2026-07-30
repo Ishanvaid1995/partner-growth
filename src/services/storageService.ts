@@ -184,6 +184,20 @@ export class StorageService {
     }
     return false;
   }
+
+  deleteFolder(userId: string, accountName: string): boolean {
+    ensureDataDir();
+    const data = fs.readFileSync(CONVERSATIONS_FILE, 'utf8');
+    let all: SavedConversation[] = JSON.parse(data) || [];
+    const initialLen = all.length;
+    all = all.filter(c => !(c.userId === userId && (c.accountName || 'General Accounts') === accountName));
+
+    if (all.length !== initialLen) {
+      fs.writeFileSync(CONVERSATIONS_FILE, JSON.stringify(all, null, 2));
+      return true;
+    }
+    return false;
+  }
 }
 
 export const storageService = new StorageService();

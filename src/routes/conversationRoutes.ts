@@ -90,4 +90,25 @@ router.delete('/api/conversations/:id', (req: Request, res: Response): void => {
   res.status(200).json({ status: 'deleted', id: convId });
 });
 
+/**
+ * DELETE /api/folders/:folderName
+ * Delete all saved conversations within a company folder.
+ */
+router.delete('/api/folders/:folderName', (req: Request, res: Response): void => {
+  const userId = getUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Authentication required to delete folders.' });
+    return;
+  }
+  const rawFolderName = Array.isArray(req.params.folderName) ? req.params.folderName[0] : req.params.folderName;
+  const folderName = decodeURIComponent(rawFolderName);
+  const success = storageService.deleteFolder(userId, folderName);
+  if (!success) {
+    res.status(404).json({ error: 'Not Found', message: 'Folder not found.' });
+    return;
+  }
+
+  res.status(200).json({ status: 'deleted', folderName });
+});
+
 export default router;

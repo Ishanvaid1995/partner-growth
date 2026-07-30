@@ -1,44 +1,28 @@
-/* ============================================================
-   Partner Growth Copilot — Frontend Application Logic
-   Sidebar, macOS Company Folders, Auth & Theme Engine
-   ============================================================ */
-
 const API_KEY = 'pgc-secret-key-123';
 const HEADERS = { 'Content-Type': 'application/json', 'x-api-key': API_KEY };
 
-// -- State --
 let currentUser = null;
 let userToken = localStorage.getItem('pgc_user_token') || null;
 let currentTheme = localStorage.getItem('pgc_theme') || 'dark';
 let isAuthRegisterMode = false;
-let lastPackageData = null;
+let isGenerating = false;
 
-const scenarios = {
+let chatHistory = [];
+let lastPackageData = null;
+let conversationContext = '';
+let currentConvId = null;
+
+const SCENARIOS = {
   retail: 'Customer: Acme Retail; Industry: Retail & E-Commerce; Use case: AI analytics for customer personalization and real-time inventory demand forecasting; Budget: $100,000 USD; Timeline: Q4.',
   manufacturing: 'Customer: Apex Manufacturing; Industry: Industrial & Automotive; Use case: IoT predictive maintenance, downtime reduction, and equipment failure forecasting; Budget: $250,000 USD; Timeline: Q1.',
   healthcare: 'Customer: HealthFirst Care; Industry: Healthcare & Life Sciences; Use case: Virtual agent for patient scheduling, HIPAA compliance, and EHR query automation; Budget: $150,000 USD; Timeline: Immediate.',
 };
 
-// ============================================================
-// INITIALIZATION
-// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initAuth();
-  applyPrompt('retail');
-
-  document.querySelectorAll('.output-tab').forEach(tab => {
-    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-  });
-
-  document.querySelectorAll('.mode-chip').forEach(chip => {
-    chip.addEventListener('click', () => executeMode(chip.dataset.mode));
-  });
 });
 
-// ============================================================
-// THEME ENGINE (Dark / Light Mode)
-// ============================================================
 function initTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme);
   updateThemeUI();
@@ -49,7 +33,6 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme);
   localStorage.setItem('pgc_theme', currentTheme);
   updateThemeUI();
-
   if (currentUser && userToken) {
     fetch('/api/auth/profile', {
       method: 'PUT',
@@ -64,19 +47,11 @@ function updateThemeUI() {
   if (label) label.textContent = currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
 }
 
-// ============================================================
-// EXPANDABLE SIDEBAR & MACOS FOLDER TREE SYSTEM
-// ============================================================
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-
   if (window.innerWidth <= 768) {
-    if (sidebar.classList.contains('mobile-open')) {
-      closeMobileSidebar();
-    } else {
-      openMobileSidebar();
-    }
+    sidebar.classList.contains('mobile-open') ? closeMobileSidebar() : openMobileSidebar();
   } else {
     sidebar.classList.toggle('collapsed');
   }
@@ -85,11 +60,9 @@ function toggleSidebar() {
 function openMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  if (sidebar) {
-    sidebar.classList.remove('collapsed');
-    sidebar.classList.add('mobile-open');
-  }
+  if (sidebar) sidebar.classList.add('mobile-open');
   if (overlay) overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeMobileSidebar() {
@@ -97,366 +70,637 @@ function closeMobileSidebar() {
   const overlay = document.getElementById('sidebarOverlay');
   if (sidebar) sidebar.classList.remove('mobile-open');
   if (overlay) overlay.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
-// Ensure responsive drawer state cleans up cleanly on window resize
-window.addEventListener('resize', () => {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  if (window.innerWidth > 768) {
-    if (sidebar) sidebar.classList.remove('mobile-open');
-    if (overlay) overlay.classList.remove('active');
+function applyScenario(key) {
+  const text = SCENARIOS[key];
+  if (!text) return;
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.value = text;
+    autoResizeInput(input);
+    input.focus();
   }
-});
+}
 
-function startNewPackage() {
+function startNewChat() {
+  chatHistory = [];
+  lastPackageData = null;
+  conversationContext = '';
+  currentConvId = null;
+
+  const messages = document.getElementById('chatMessages');
+  if (messages) {
+    messages.innerHTML = `
+      <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <h1 class="welcome-title">Partner Growth Copilot</h1>
+        <p class="welcome-sub">Paste a customer deal context to generate an IBM pre-sales proposal. Then ask follow-up questions — risks, architecture, budgets, pilots — in a natural conversation.</p>
+        <div class="welcome-chips">
+          <button class="welcome-chip" onclick="applyScenario('retail')">
+            <span class="chip-icon">🛍️</span>
+            <div><div class="chip-title">Retail Analytics</div><div class="chip-desc">AI personalization & demand forecasting</div></div>
+          </button>
+          <button class="welcome-chip" onclick="applyScenario('manufacturing')">
+            <span class="chip-icon">🏭</span>
+            <div><div class="chip-title">Manufacturing Maintenance</div><div class="chip-desc">IoT predictive maintenance & downtime reduction</div></div>
+          </button>
+          <button class="welcome-chip" onclick="applyScenario('healthcare')">
+            <span class="chip-icon">🏥</span>
+            <div><div class="chip-title">Healthcare AI</div><div class="chip-desc">HIPAA virtual agent & EHR automation</div></div>
+          </button>
+        </div>
+      </div>`;
+  }
+
+  const pdfBtn = document.getElementById('pdfBtn');
+  if (pdfBtn) pdfBtn.style.display = 'none';
+
+  const input = document.getElementById('chatInput');
+  if (input) { input.value = ''; autoResizeInput(input); }
+
   closeMobileSidebar();
-  document.getElementById('dealInput').value = '';
-  document.getElementById('workspace').classList.remove('visible');
-  document.getElementById('dealInput').focus();
+}
+
+function handleChatKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendChatMessage();
+  }
+}
+
+function autoResizeInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+async function sendChatMessage() {
+  if (isGenerating) return;
+  const input = document.getElementById('chatInput');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+
+  const welcome = document.getElementById('welcomeScreen');
+  if (welcome) welcome.remove();
+
+  appendUserBubble(text);
+  chatHistory.push({ role: 'user', content: text });
+
+  if (input) { input.value = ''; autoResizeInput(input); }
+
+  const typingId = appendTypingIndicator();
+  isGenerating = true;
+  setSendDisabled(true);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        message: text,
+        history: chatHistory.slice(0, -1),
+        conversation_context: conversationContext,
+      }),
+    });
+
+    removeTypingIndicator(typingId);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      appendErrorBubble(err.message || `Error ${res.status} — please try again.`);
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.type === 'proposal') {
+      lastPackageData = data.package_data;
+      conversationContext = buildContext(data.package_data);
+      appendProposalCard(data.package_data);
+      chatHistory.push({ role: 'assistant', content: `[Proposal generated for: ${data.package_data?.proposal?.solution_name || 'Customer'}]` });
+
+      const pdfBtn = document.getElementById('pdfBtn');
+      if (pdfBtn) pdfBtn.style.display = 'inline-flex';
+
+      autoSaveConversation(text, data.package_data);
+    } else {
+      appendAssistantBubble(data.content || 'Sorry, I could not generate a response.');
+      chatHistory.push({ role: 'assistant', content: data.content || '' });
+    }
+  } catch (err) {
+    removeTypingIndicator(typingId);
+    appendErrorBubble('Network error — please check your connection and try again.');
+  } finally {
+    isGenerating = false;
+    setSendDisabled(false);
+  }
+}
+
+function setSendDisabled(disabled) {
+  const btn = document.getElementById('chatSendBtn');
+  if (btn) btn.disabled = disabled;
+}
+
+function appendUserBubble(text) {
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return;
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--user';
+  row.innerHTML = `<div class="chat-bubble--user">${escapeHtml(text)}</div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+}
+
+function appendTypingIndicator() {
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return null;
+  const id = 'typing_' + Date.now();
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--assistant';
+  row.id = id;
+  row.innerHTML = `
+    <div class="chat-typing">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+  return id;
+}
+
+function removeTypingIndicator(id) {
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function appendAssistantBubble(markdownText) {
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return;
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--assistant';
+  row.innerHTML = `
+    <div class="chat-bubble--assistant">
+      <div class="assistant-header">
+        <div class="assistant-avatar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="assistant-name">Partner Growth Copilot</span>
+      </div>
+      <div class="formatted-content">${parseMarkdownToHtml(markdownText)}</div>
+    </div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+}
+
+function appendProposalCard(pkg) {
+  const messages = document.getElementById('chatMessages');
+  if (!messages || !pkg) return;
+
+  const proposal = pkg.proposal || {};
+  const solutionName = sanitizeText(proposal.solution_name) || 'IBM Solution Proposal';
+  const stack = Array.isArray(proposal.recommended_ibm_stack)
+    ? proposal.recommended_ibm_stack.join(' · ')
+    : 'IBM watsonx.ai, IBM watsonx Orchestrate';
+  const outcomes = Array.isArray(proposal.business_outcomes)
+    ? proposal.business_outcomes.join(' · ')
+    : '—';
+  const proposalHtml = parseMarkdownToHtml(
+    typeof proposal.proposal === 'string' ? proposal.proposal : (proposal.proposal?.proposal || '')
+  );
+
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--assistant';
+  row.innerHTML = `
+    <div class="chat-bubble--assistant">
+      <div class="assistant-header">
+        <div class="assistant-avatar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="assistant-name">Partner Growth Copilot</span>
+      </div>
+
+      <div style="font-family:var(--font-heading); font-size:17px; font-weight:800; margin-bottom:14px; color:var(--text-primary);">${escapeHtml(solutionName)}</div>
+
+      <div class="proposal-meta">
+        <div class="proposal-meta-item">
+          <div class="proposal-meta-label">Recommended IBM Stack</div>
+          <div class="proposal-meta-value">${escapeHtml(stack)}</div>
+        </div>
+        <div class="proposal-meta-item">
+          <div class="proposal-meta-label">Target Business Outcomes</div>
+          <div class="proposal-meta-value">${escapeHtml(outcomes)}</div>
+        </div>
+      </div>
+
+      <div class="formatted-content">${proposalHtml}</div>
+
+      <div class="proposal-actions">
+        <button class="proposal-action-btn primary" onclick="downloadPdf()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF
+        </button>
+        <button class="proposal-action-btn" onclick="askQuestion('What are the main technical and commercial risks for this deal?')">
+          🛡️ Surface Risks
+        </button>
+        <button class="proposal-action-btn" onclick="askQuestion('What is the recommended pilot strategy and smallest viable scope?')">
+          🚀 Pilot Strategy
+        </button>
+        <button class="proposal-action-btn" onclick="askQuestion('What are the likely objections from the customer and how should I respond?')">
+          💬 Handle Objections
+        </button>
+        <button class="proposal-action-btn" onclick="downloadWord()" style="margin-left:auto;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Word (.docx)
+        </button>
+      </div>
+    </div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+}
+
+function appendErrorBubble(message) {
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return;
+  const row = document.createElement('div');
+  row.className = 'chat-row chat-row--assistant';
+  row.innerHTML = `
+    <div class="chat-bubble--assistant" style="border-color: rgba(239,68,68,0.3);">
+      <div class="assistant-header">
+        <div class="assistant-avatar" style="background: #ef4444;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <span class="assistant-name" style="color:#ef4444;">Error</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 14px;">${escapeHtml(message)}</p>
+    </div>`;
+  messages.appendChild(row);
+  scrollToBottom();
+}
+
+function askQuestion(text) {
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.value = text;
+    autoResizeInput(input);
+  }
+  sendChatMessage();
+}
+
+function scrollToBottom() {
+  const messages = document.getElementById('chatMessages');
+  if (messages) {
+    requestAnimationFrame(() => {
+      messages.scrollTop = messages.scrollHeight;
+    });
+  }
+}
+
+function buildContext(pkg) {
+  if (!pkg) return '';
+  const p = pkg.proposal || {};
+  const parts = [];
+  if (p.solution_name) parts.push(`Solution: ${p.solution_name}`);
+  if (Array.isArray(p.recommended_ibm_stack)) parts.push(`IBM Stack: ${p.recommended_ibm_stack.join(', ')}`);
+  if (Array.isArray(p.business_outcomes)) parts.push(`Outcomes: ${p.business_outcomes.join('; ')}`);
+  if (typeof p.proposal === 'string') parts.push(p.proposal.slice(0, 800));
+  const h = pkg.handoff_summary || {};
+  if (Array.isArray(h.risks) && h.risks.length) parts.push(`Risks: ${h.risks.join('; ')}`);
+  if (Array.isArray(h.next_steps) && h.next_steps.length) parts.push(`Next Steps: ${h.next_steps.join('; ')}`);
+  const s = pkg.deal_score || {};
+  if (s.score) parts.push(`Deal Score: ${s.score}/100`);
+  return parts.join('\n');
+}
+
+function triggerFileDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  if (filename) a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function downloadPdf() {
+  if (!lastPackageData) {
+    appendErrorBubble('No proposal available. Please generate a package first.');
+    return;
+  }
+  const btn = document.getElementById('pdfBtn');
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify(lastPackageData),
+    });
+    const data = await res.json();
+    if (data.download_url) {
+      triggerFileDownload(data.download_url, data.file_name);
+    } else {
+      appendErrorBubble('PDF generation failed. Please try again.');
+    }
+  } catch (err) {
+    appendErrorBubble('PDF download error: ' + err.message);
+  } finally {
+    if (btn) { btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF'; btn.disabled = false; }
+  }
+}
+
+async function downloadWord() {
+  if (!lastPackageData) {
+    appendErrorBubble('No proposal available. Please generate a package first.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/generate-docx', {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify(lastPackageData),
+    });
+    const data = await res.json();
+    if (data.download_url) {
+      triggerFileDownload(data.download_url, data.file_name);
+    } else {
+      appendErrorBubble('Word generation failed. Please try again.');
+    }
+  } catch (err) {
+    appendErrorBubble('Word download error: ' + err.message);
+  }
+}
+
+function autoSaveConversation(rawInput, pkg) {
+  if (!currentUser || !userToken) {
+    const banner = document.getElementById('guestSaveBanner');
+    if (banner) banner.style.display = 'flex';
+    return;
+  }
+  const accountName = extractAccountName(rawInput);
+  const industry = detectIndustry(rawInput);
+  fetch('/api/conversations', {
+    method: 'POST',
+    headers: { ...HEADERS, 'x-user-id': userToken },
+    body: JSON.stringify({ account_name: accountName, industry, raw_input: rawInput, packageData: pkg }),
+  })
+    .then(r => r.json())
+    .then(saved => {
+      currentConvId = saved.id;
+      loadSavedConversations();
+    })
+    .catch(() => {});
 }
 
 async function loadSavedConversations() {
-  const container = document.getElementById('companyFoldersList');
-  if (!container) return;
-
-  if (!userToken || !currentUser) {
-    container.innerHTML = '<div style="padding:12px 8px; font-size:12px; color:var(--text-muted); text-align:left;">Sign in to save and manage deal packages in macOS company folders.</div>';
-    window._savedConversations = [];
+  if (!currentUser || !userToken) {
+    renderGuestFolders();
     return;
   }
-
   try {
     const res = await fetch('/api/conversations', {
       headers: { ...HEADERS, 'x-user-id': userToken },
     });
-
-    if (!res.ok) return;
     const data = await res.json();
-
-    if (!data.folders || data.folders.length === 0) {
-      container.innerHTML = '<div style="padding:12px 8px; font-size:12px; color:var(--text-muted);">No saved deal packages yet.</div>';
-      window._savedConversations = [];
-      return;
-    }
-
-    let html = '';
-    data.folders.forEach((folder, idx) => {
-      const folderId = `folder_${idx}`;
-      html += `
-        <div class="macos-folder">
-          <div class="folder-header" onclick="toggleFolder('${folderId}')">
-            <div class="folder-header-left">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              <span>${folder.folderName}</span>
-            </div>
-            <span class="folder-badge">${folder.count}</span>
-          </div>
-          <div class="folder-items" id="${folderId}">
-            ${folder.conversations.map(conv => `
-              <div class="history-item" onclick="loadSavedSession('${conv.id}')">
-                <span class="history-title">${conv.title}</span>
-                <button class="history-delete-btn" onclick="deleteSession(event, '${conv.id}')" title="Delete">✕</button>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
-    window._savedConversations = data.folders.flatMap(f => f.conversations);
-  } catch (err) {
-    console.warn('[Folders Load Failed]', err);
+    renderFolders(data.folders || []);
+  } catch {
+    renderGuestFolders();
   }
 }
 
-function toggleFolder(folderId) {
-  const el = document.getElementById(folderId);
-  if (el) el.classList.toggle('hidden');
+function renderGuestFolders() {
+  const el = document.getElementById('companyFoldersList');
+  if (el) el.innerHTML = '<div style="padding:12px 8px; font-size:12px; color:var(--text-muted);">Sign in to save deal conversations.</div>';
 }
 
-function loadSavedSession(convId) {
-  if (!window._savedConversations) return;
-  const conv = window._savedConversations.find(c => c.id === convId);
+function renderFolders(folders) {
+  const el = document.getElementById('companyFoldersList');
+  if (!el) return;
+  if (!folders.length) {
+    el.innerHTML = '<div style="padding:12px 8px; font-size:12px; color:var(--text-muted);">No saved deals yet. Generate a proposal to save it here.</div>';
+    return;
+  }
+  el.innerHTML = folders.map((folder, fi) => `
+    <div class="folder-item">
+      <div class="folder-header" onclick="toggleFolder(this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span class="folder-name">${escapeHtml(folder.folderName)}</span>
+        <span class="folder-count">${folder.count}</span>
+        <button class="delete-action-btn" title="Delete folder" onclick="deleteFolderGroup('${escapeHtml(folder.folderName)}', event)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      <div class="folder-children ${fi === 0 ? 'open' : ''}">
+        ${(folder.conversations || []).map(conv => {
+          const label = conv.packageData?.proposal?.solution_name
+            || conv.title
+            || conv.accountName
+            || 'Deal Package';
+          const safeSerialized = encodeURIComponent(JSON.stringify(conv));
+          return `
+            <div class="folder-child-item ${conv.id === currentConvId ? 'active' : ''}" onclick="loadConversationById('${conv.id}', '${safeSerialized}')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(label)}</span>
+              <button class="delete-action-btn" title="Delete conversation" onclick="deleteConversationItem('${conv.id}', event)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function deleteConversationItem(convId, event) {
+  if (event) event.stopPropagation();
+  if (!userToken) return;
+  try {
+    const res = await fetch(`/api/conversations/${convId}`, {
+      method: 'DELETE',
+      headers: { ...HEADERS, 'x-user-id': userToken },
+    });
+    if (res.ok) {
+      if (currentConvId === convId) {
+        startNewChat();
+      }
+      loadSavedConversations();
+    }
+  } catch (e) {}
+}
+
+async function deleteFolderGroup(folderName, event) {
+  if (event) event.stopPropagation();
+  if (!userToken) return;
+  try {
+    const encoded = encodeURIComponent(folderName);
+    const res = await fetch(`/api/folders/${encoded}`, {
+      method: 'DELETE',
+      headers: { ...HEADERS, 'x-user-id': userToken },
+    });
+    if (res.ok) {
+      startNewChat();
+      loadSavedConversations();
+    }
+  } catch (e) {}
+}
+
+function toggleFolder(headerEl) {
+  const children = headerEl.nextElementSibling;
+  if (children) children.classList.toggle('open');
+}
+
+function loadConversationById(convId, encodedConv) {
+  let conv;
+  try {
+    conv = JSON.parse(decodeURIComponent(encodedConv));
+  } catch { return; }
+  loadConversation(convId, conv);
+}
+
+function loadConversation(convId, convData) {
+  const conv = typeof convData === 'string'
+    ? (() => { try { return JSON.parse(convData); } catch { return null; } })()
+    : convData;
   if (!conv) return;
 
+  currentConvId = convId;
+  lastPackageData = conv.packageData || null;
+  conversationContext = buildContext(conv.packageData);
+  chatHistory = [];
+
+  const messages = document.getElementById('chatMessages');
+  if (!messages) return;
+  messages.innerHTML = '';
+
+  if (conv.rawInput) {
+    appendUserBubble(conv.rawInput);
+    chatHistory.push({ role: 'user', content: conv.rawInput });
+  }
+
+  if (conv.packageData) {
+    appendProposalCard(conv.packageData);
+    chatHistory.push({ role: 'assistant', content: `[Proposal: ${conv.packageData?.proposal?.solution_name || 'Package'}]` });
+  }
+
+  const pdfBtn = document.getElementById('pdfBtn');
+  const wordBtn = document.getElementById('wordBtn');
+  if (pdfBtn) pdfBtn.style.display = 'inline-flex';
+  if (wordBtn) wordBtn.style.display = 'inline-flex';
+
   closeMobileSidebar();
-  document.getElementById('dealInput').value = conv.rawInput;
-  lastPackageData = conv.packageData;
-  populateResults(conv.packageData);
-
-  const workspace = document.getElementById('workspace');
-  workspace.classList.add('visible');
-  switchTab('proposal');
-  workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function deleteSession(event, convId) {
-  event.stopPropagation();
-  try {
-    await fetch(`/api/conversations/${convId}`, {
-      method: 'DELETE',
-      headers: { ...HEADERS, 'x-user-id': userToken || 'guest_user' },
+function parseMarkdownToHtml(markdownText) {
+  if (!markdownText) return '';
+  let clean = sanitizeText(markdownText);
+
+  clean = clean.replace(/^\{?\s*"proposal"\s*:\s*"/i, '')
+               .replace(/^"proposal"\s*:\s*"/i, '')
+               .replace(/"\s*\}?\s*$/, '');
+
+  clean = clean.replace(/\s*(#{1,3})\s+([^\n]+)/g, '\n\n$1 $2\n\n');
+  clean = clean.replace(/(\d+\.\s+[A-Z][^\n]{3,60})\n(?=[A-Za-z])/g, '$1\n\n');
+
+  clean = clean.replace(/(?:^|\n)(\|[^\n]+\|(?:\n\|[-:\s|]+\|)?(?:\n\|[^\n]+\|)*)/g, (match) => {
+    const tableLines = match.trim().split('\n').filter(l => l.trim());
+    if (tableLines.length < 2) return match;
+    const headers = tableLines[0].split('|').map(c => c.trim()).filter(Boolean);
+    const dataStart = tableLines[1]?.match(/^\|[-:\s|]+\|$/) ? 2 : 1;
+    const dataRows = tableLines.slice(dataStart).map(line =>
+      line.split('|').map(c => c.trim()).filter(Boolean)
+    ).filter(row => row.length > 0);
+    if (!headers.length) return match;
+
+    let tableHtml = '<div class="table-responsive"><table class="md-table"><thead><tr>';
+    headers.forEach(h => { tableHtml += `<th>${boldInline(escapeHtml(h))}</th>`; });
+    tableHtml += '</tr></thead><tbody>';
+    dataRows.forEach((row, ri) => {
+      tableHtml += `<tr class="${ri % 2 === 1 ? 'alt-row' : ''}">`;
+      row.forEach(cell => { tableHtml += `<td>${boldInline(escapeHtml(cell))}</td>`; });
+      tableHtml += '</tr>';
     });
-    loadSavedConversations();
-  } catch (err) {}
-}
+    tableHtml += '</tbody></table></div>';
+    return '\n\n' + tableHtml + '\n\n';
+  });
 
-// ============================================================
-// AUTHENTICATION & USER MANAGEMENT
-// ============================================================
-async function initAuth() {
-  if (!userToken) {
-    updateUserUI(null);
-    loadSavedConversations();
-    return;
-  }
+  clean = clean.replace(/^###\s+(.+)$/gm, '<h4>$1</h4>');
+  clean = clean.replace(/^##\s+(.+)$/gm, '<h3>$1</h3>');
+  clean = clean.replace(/^#\s+(.+)$/gm, '<h2>$1</h2>');
+  clean = clean.replace(/^(\d+\.\s+[A-Z][^\n]{2,60})$/gm, '<h3>$1</h3>');
 
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: { ...HEADERS, 'x-user-id': userToken },
-    });
+  clean = clean.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  clean = clean.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  clean = clean.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  clean = clean.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    if (res.ok) {
-      currentUser = await res.json();
-      if (currentUser.theme) {
-        currentTheme = currentUser.theme;
-        initTheme();
-      }
-      updateUserUI(currentUser);
-    } else {
-      userToken = null;
-      localStorage.removeItem('pgc_user_token');
-      updateUserUI(null);
+  clean = clean.replace(
+    /((?:^[ \t]*[-*•+][ \t]+.+(?:\n|$))+)/gm,
+    (match) => {
+      const items = match.trim().split('\n')
+        .map(l => l.trim().replace(/^[-*•+]\s+/, '').trim())
+        .filter(Boolean);
+      return '<ul>' + items.map(i => `<li>${boldInline(i)}</li>`).join('') + '</ul>';
     }
-  } catch (err) {
-    updateUserUI(null);
-  }
-  loadSavedConversations();
-}
+  );
 
-function updateUserUI(user) {
-  const avatar = document.getElementById('sidebarAvatar');
-  const nameEl = document.getElementById('sidebarUserName');
-  const emailEl = document.getElementById('sidebarUserEmail');
-
-  if (user) {
-    avatar.textContent = user.name.charAt(0).toUpperCase();
-    nameEl.textContent = user.name;
-    emailEl.textContent = user.email;
-  } else {
-    avatar.textContent = 'G';
-    nameEl.textContent = 'Guest Account';
-    emailEl.textContent = 'Sign in / Register';
-  }
-}
-
-function openUserModal() {
-  if (currentUser) {
-    document.getElementById('profName').value = currentUser.name;
-    document.getElementById('profEmail').value = currentUser.email;
-    document.getElementById('profileModal').classList.add('active');
-  } else {
-    document.getElementById('authModal').classList.add('active');
-  }
-}
-
-function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
-function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
-
-function toggleAuthMode() {
-  isAuthRegisterMode = !isAuthRegisterMode;
-  document.getElementById('authModalTitle').textContent = isAuthRegisterMode ? 'Create Account' : 'Sign In';
-  document.getElementById('nameGroup').style.display = isAuthRegisterMode ? 'block' : 'none';
-  document.getElementById('authSubmitBtn').textContent = isAuthRegisterMode ? 'Register Account' : 'Sign In';
-  document.getElementById('authSwitch').innerHTML = isAuthRegisterMode
-    ? 'Already have an account? <a onclick="toggleAuthMode()">Sign in here</a>'
-    : 'Don\'t have an account? <a onclick="toggleAuthMode()">Register here</a>';
-}
-
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value.trim();
-  const name = document.getElementById('authName').value.trim();
-
-  const endpoint = isAuthRegisterMode ? '/api/auth/register' : '/api/auth/login';
-  const body = isAuthRegisterMode ? { name, email, password } : { email, password };
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Auth failed');
-
-    userToken = data.token;
-    currentUser = data.user;
-    localStorage.setItem('pgc_user_token', userToken);
-
-    updateUserUI(currentUser);
-    closeAuthModal();
-
-    // If there is a pending package generated while guest, auto-save to account!
-    const pendingStr = sessionStorage.getItem('pgc_pending_package');
-    if (pendingStr) {
-      try {
-        const pending = JSON.parse(pendingStr);
-        await fetch('/api/conversations', {
-          method: 'POST',
-          headers: { ...HEADERS, 'x-user-id': userToken },
-          body: JSON.stringify(pending),
-        });
-        sessionStorage.removeItem('pgc_pending_package');
-        const banner = document.getElementById('guestSaveBanner');
-        if (banner) banner.style.display = 'none';
-      } catch(e) {}
+  clean = clean.replace(
+    /((?:^[ \t]*\d+\.[ \t]+.+(?:\n|$))+)/gm,
+    (match) => {
+      const items = match.trim().split('\n')
+        .map(l => l.trim().replace(/^\d+\.\s+/, '').trim())
+        .filter(Boolean);
+      return '<ol>' + items.map(i => `<li>${boldInline(i)}</li>`).join('') + '</ol>';
     }
+  );
 
-    loadSavedConversations();
-  } catch (err) {
-    alert(err.message);
-  }
+  const parts = clean.split('\n\n');
+  const result = parts.map(block => {
+    const t = block.trim();
+    if (!t) return '';
+    if (/^<(h[2-4]|ul|ol|div|table|p)/i.test(t)) return t;
+    const lines = t.split('\n').map(l => l.trim()).filter(Boolean);
+    return `<p>${lines.join('<br>')}</p>`;
+  });
+
+  return result.filter(Boolean).join('\n');
 }
 
-async function handleProfileUpdate(e) {
-  e.preventDefault();
-  const name = document.getElementById('profName').value.trim();
-  const password = document.getElementById('profPassword').value.trim();
-
-  try {
-    const res = await fetch('/api/auth/profile', {
-      method: 'PUT',
-      headers: { ...HEADERS, 'x-user-id': userToken },
-      body: JSON.stringify({ name, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Update failed');
-
-    currentUser = data;
-    updateUserUI(currentUser);
-    closeProfileModal();
-    alert('Account updated successfully.');
-  } catch (err) {
-    alert(err.message);
-  }
+function boldInline(text) {
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
-function handleSignOut() {
-  currentUser = null;
-  userToken = null;
-  localStorage.removeItem('pgc_user_token');
-  sessionStorage.removeItem('pgc_pending_package');
-  const banner = document.getElementById('guestSaveBanner');
-  if (banner) banner.style.display = 'none';
-  updateUserUI(null);
-  closeProfileModal();
-  loadSavedConversations();
-}
-
-// ============================================================
-// WORKFLOW EXECUTION & AUTO-SAVE TO MACOS FOLDERS
-// ============================================================
-async function executeWorkflow() {
-  const dealInput = document.getElementById('dealInput').value.trim();
-  if (!dealInput) {
-    document.getElementById('dealInput').focus();
-    return;
-  }
-
-  const workspace = document.getElementById('workspace');
-  workspace.classList.add('visible');
-  const loader = document.getElementById('loader');
-  const loaderText = document.getElementById('loaderText');
-  loader.classList.remove('hidden');
-  loaderText.textContent = 'Generating package via watsonx.ai…';
-
-  workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  try {
-    const res = await fetch('/generate-full-opportunity-package', {
-      method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify({
-        raw_input: dealInput,
-        industry: detectIndustry(dealInput),
-        account_name: extractAccountName(dealInput),
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || `API error (${res.status})`);
-    }
-
-    const data = await res.json();
-    lastPackageData = data;
-    populateResults(data);
-    switchTab('proposal');
-
-    const pendingPayload = {
-      account_name: extractAccountName(dealInput),
-      industry: detectIndustry(dealInput),
-      raw_input: dealInput,
-      packageData: data,
-    };
-
-    if (currentUser && userToken) {
-      // User signed in: Save directly
-      fetch('/api/conversations', {
-        method: 'POST',
-        headers: { ...HEADERS, 'x-user-id': userToken },
-        body: JSON.stringify(pendingPayload),
-      }).then(() => loadSavedConversations()).catch(() => {});
-    } else {
-      // Guest mode: prompt user to create an account & save to session
-      sessionStorage.setItem('pgc_pending_package', JSON.stringify(pendingPayload));
-      const banner = document.getElementById('guestSaveBanner');
-      if (banner) banner.style.display = 'flex';
-    }
-
-  } catch (err) {
-    loaderText.textContent = `Error: ${err.message}`;
-    setTimeout(() => loader.classList.add('hidden'), 3000);
-    return;
-  }
-
-  loader.classList.add('hidden');
-}
-
-// ============================================================
-// FORMATTING PARSER & CLEANING HELPERS
-// ============================================================
-function sanitizeRawText(input) {
+function sanitizeText(input) {
   if (!input) return '';
   let str = String(input).trim();
-  
-  // Strip ```json wrapper or ``` block
-  str = str.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-  // Check if string contains JSON syntax like {"subject": ..., "email_body": ...}
-  if (str.includes('"email_body"') || (str.startsWith('{') && str.endsWith('}'))) {
+  if (typeof input === 'object') {
+    if (input.proposal) str = typeof input.proposal === 'string' ? input.proposal : (input.proposal.proposal || '');
+    else if (input.email_body) str = input.email_body;
+    else if (input.summary) str = input.summary;
+  }
+
+  str = str.replace(/```json/gi, '').replace(/```/g, '').trim();
+  str = str.replace(/^\{\s*"proposal"\s*:\s*"/i, '')
+           .replace(/^"proposal"\s*:\s*"/i, '')
+           .replace(/^\{\s*"email_body"\s*:\s*"/i, '');
+
+  if (str.includes('"email_body"') || str.includes('"proposal"') || str.startsWith('{')) {
     try {
-      // RegEx extraction for email_body to prevent nested JSON corruption
-      const match = str.match(/"email_body"\s*:\s*"([\s\S]*?)"(?=\s*\}|\s*,\s*")/);
-      if (match && match[1]) {
-        str = match[1];
+      const match = str.match(/"(email_body|proposal)"\s*:\s*"([\s\S]*?)"(?=\s*\}|\s*,\s*")/);
+      if (match && match[2]) {
+        str = match[2];
       } else {
         const parsed = JSON.parse(str);
-        if (parsed.email_body) str = parsed.email_body;
-        else if (parsed.proposal) str = parsed.proposal;
+        if (parsed.proposal) str = typeof parsed.proposal === 'string' ? parsed.proposal : (parsed.proposal.proposal || '');
+        else if (parsed.email_body) str = parsed.email_body;
         else if (parsed.summary) str = parsed.summary;
       }
-    } catch(e) {
-      // Fallback regex match if JSON.parse throws
-      const match = str.match(/"email_body"\s*:\s*"([\s\S]*?)"/);
-      if (match && match[1]) str = match[1];
-    }
+    } catch(e) {}
   }
 
   return str
@@ -467,95 +711,164 @@ function sanitizeRawText(input) {
     .trim();
 }
 
-function parseMarkdownToHtml(markdownText) {
-  if (!markdownText) return '';
-  let clean = sanitizeRawText(markdownText);
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-  // If already rich HTML with paragraph tags, clean up and return
-  if (clean.includes('<p>') || clean.includes('<ul>')) {
-    return clean
-      .replace(/<p>\s*<\/p>/g, '')
-      .replace(/\\n/g, '<br>')
-      .trim();
+function initAuth() {
+  if (userToken) {
+    fetch('/api/auth/me', {
+      headers: { ...HEADERS, 'x-user-id': userToken },
+    })
+      .then(r => r.json())
+      .then(user => {
+        if (user && user.id) {
+          currentUser = user;
+          if (user.theme) {
+            currentTheme = user.theme;
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            updateThemeUI();
+          }
+          updateUserUI(user);
+          loadSavedConversations();
+        } else {
+          userToken = null;
+          localStorage.removeItem('pgc_user_token');
+          updateUserUI(null);
+        }
+      })
+      .catch(() => { userToken = null; localStorage.removeItem('pgc_user_token'); updateUserUI(null); });
+  } else {
+    updateUserUI(null);
   }
+}
 
-  // Convert markdown formatting tags
-  clean = clean.replace(/^#+\s*(.*?)$/gm, '<h3>$1</h3>');
-  clean = clean.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  clean = clean.replace(/\*(.*?)\*/g, '<em>$1</em>');
+function updateUserUI(user) {
+  const avatar = document.getElementById('sidebarAvatar');
+  const name = document.getElementById('sidebarUserName');
+  const email = document.getElementById('sidebarUserEmail');
+  if (user) {
+    if (avatar) avatar.textContent = (user.name || 'U')[0].toUpperCase();
+    if (name) name.textContent = user.name || 'Account';
+    if (email) email.textContent = user.email || '';
+  } else {
+    if (avatar) avatar.textContent = 'G';
+    if (name) name.textContent = 'Guest Account';
+    if (email) email.textContent = 'Sign in / Register';
+  }
+}
 
-  // Split into structural blocks separated by empty lines or line breaks
-  const rawBlocks = clean.split(/\n\s*\n/);
-  let htmlResult = [];
-
-  for (let block of rawBlocks) {
-    const trimmed = block.trim();
-    if (!trimmed) continue;
-
-    const lines = trimmed.split('\n');
-    let isBulletBlock = lines.every(l => {
-      const t = l.trim();
-      return t.startsWith('- ') || t.startsWith('* ') || t.startsWith('• ') || /^\d+\.\s/.test(t);
-    });
-
-    if (isBulletBlock || (lines.length > 1 && lines[0].trim().startsWith('- '))) {
-      htmlResult.push('<ul>');
-      for (let l of lines) {
-        const itemText = l.trim().replace(/^[-*•\d+.]\s*/, '');
-        if (itemText) htmlResult.push(`  <li>${itemText}</li>`);
-      }
-      htmlResult.push('</ul>');
-    } else if (trimmed.startsWith('<h3>')) {
-      htmlResult.push(trimmed);
-    } else {
-      // Formatted paragraph with line breaks inside turned into <br>
-      const paraContent = lines.map(l => l.trim()).join('<br>');
-      htmlResult.push(`<p>${paraContent}</p>`);
+function openAuthModal() { document.getElementById('authModal')?.classList.add('active'); }
+function closeAuthModal() { document.getElementById('authModal')?.classList.remove('active'); }
+function openUserModal() {
+  if (currentUser) {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+      const pName = document.getElementById('profName');
+      const pEmail = document.getElementById('profEmail');
+      if (pName) pName.value = currentUser.name || '';
+      if (pEmail) pEmail.value = currentUser.email || '';
+      modal.classList.add('active');
     }
+  } else {
+    openAuthModal();
   }
+}
+function closeProfileModal() { document.getElementById('profileModal')?.classList.remove('active'); }
 
-  return htmlResult.join('\n');
+function toggleAuthMode() {
+  isAuthRegisterMode = !isAuthRegisterMode;
+  const title = document.getElementById('authModalTitle');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  const nameGroup = document.getElementById('nameGroup');
+  const switchEl = document.getElementById('authSwitch');
+  if (title) title.textContent = isAuthRegisterMode ? 'Create Account' : 'Sign In';
+  if (submitBtn) submitBtn.textContent = isAuthRegisterMode ? 'Create Account' : 'Sign In';
+  if (nameGroup) nameGroup.style.display = isAuthRegisterMode ? 'block' : 'none';
+  if (switchEl) switchEl.innerHTML = isAuthRegisterMode
+    ? 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>'
+    : 'Don\'t have an account? <a onclick="toggleAuthMode()">Register here</a>';
 }
 
-function applyPrompt(key) {
-  if (!scenarios[key]) return;
-  document.getElementById('dealInput').value = scenarios[key];
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  const chips = document.querySelectorAll('.chip');
-  const idx = { retail: 0, manufacturing: 1, healthcare: 2 }[key];
-  if (chips[idx]) chips[idx].classList.add('active');
-}
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+  const btn = document.getElementById('authSubmitBtn');
+  const email = document.getElementById('authEmail')?.value.trim();
+  const password = document.getElementById('authPassword')?.value;
+  const name = document.getElementById('authName')?.value.trim();
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+  try {
+    const endpoint = isAuthRegisterMode ? '/api/auth/register' : '/api/auth/login';
+    const body = isAuthRegisterMode ? { name, email, password } : { email, password };
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Authentication failed');
+    currentUser = data.user;
+    userToken = data.token;
+    localStorage.setItem('pgc_user_token', userToken);
+    updateUserUI(currentUser);
+    closeAuthModal();
+    loadSavedConversations();
 
-function launchScenario(key) {
-  applyPrompt(key);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  setTimeout(() => executeWorkflow(), 400);
-}
-
-function switchTab(tabName) {
-  document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.out-pane').forEach(p => p.classList.remove('active'));
-
-  const tab = document.querySelector(`.output-tab[data-tab="${tabName}"]`);
-  const pane = document.getElementById(`pane-${tabName}`);
-  if (tab) tab.classList.add('active');
-  if (pane) pane.classList.add('active');
-}
-
-function triggerChatOrScroll() {
-  if (window.wxoLoader && typeof window.wxoLoader.open === 'function') {
-    window.wxoLoader.open(); return;
+    const banner = document.getElementById('guestSaveBanner');
+    if (banner) banner.style.display = 'none';
+    if (lastPackageData) {
+      const rawInput = chatHistory.find(h => h.role === 'user')?.content || '';
+      autoSaveConversation(rawInput, lastPackageData);
+    }
+  } catch(err) {
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'color:#ef4444; font-size:13px; margin-top:8px; text-align:center;';
+    errDiv.textContent = err.message;
+    const form = document.getElementById('authForm');
+    if (form) { const existing = form.querySelector('.auth-err'); if (existing) existing.remove(); errDiv.className = 'auth-err'; form.appendChild(errDiv); }
+  } finally {
+    if (btn) { btn.textContent = isAuthRegisterMode ? 'Create Account' : 'Sign In'; btn.disabled = false; }
   }
-  if (window.wxoLoader && typeof window.wxoLoader.openWindow === 'function') {
-    window.wxoLoader.openWindow(); return;
+}
+
+async function handleProfileUpdate(event) {
+  event.preventDefault();
+  const btn = event.target.querySelector('button[type="submit"]');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  try {
+    const name = document.getElementById('profName')?.value.trim();
+    const password = document.getElementById('profPassword')?.value;
+    const updates = { name };
+    if (password) updates.password = password;
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { ...HEADERS, 'x-user-id': userToken },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Update failed');
+    currentUser = { ...currentUser, ...data.user };
+    updateUserUI(currentUser);
+    closeProfileModal();
+  } catch(err) {
+    alert(err.message);
+  } finally {
+    if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }
   }
-  const domLauncher =
-    document.querySelector('#wxo-chat-launcher') ||
-    document.querySelector('.wxo-chat-launcher') ||
-    document.querySelector('button[aria-label*="chat" i]') ||
-    document.querySelector('.WACLauncherContainer button');
-  if (domLauncher) { domLauncher.click(); return; }
-  document.getElementById('dealInput').focus();
+}
+
+function handleSignOut() {
+  currentUser = null;
+  userToken = null;
+  localStorage.removeItem('pgc_user_token');
+  updateUserUI(null);
+  closeProfileModal();
+  renderGuestFolders();
 }
 
 function detectIndustry(input) {
@@ -567,287 +880,6 @@ function detectIndustry(input) {
 }
 
 function extractAccountName(input) {
-  const match = input.match(/Customer:\s*([^;]+)/i);
+  const match = input.match(/Customer\s*:\s*([^;,\n]+)/i);
   return match ? match[1].trim() : 'Customer Account';
-}
-
-function populateResults(data) {
-  if (data.proposal) {
-    document.getElementById('resProposalText').innerHTML = parseMarkdownToHtml(data.proposal.proposal) || '<em>No proposal returned.</em>';
-    document.getElementById('resSolutionName').innerText = sanitizeRawText(data.proposal.solution_name) || 'IBM Solution Proposal';
-    document.getElementById('resStack').innerText = Array.isArray(data.proposal.recommended_ibm_stack)
-      ? data.proposal.recommended_ibm_stack.join(' · ')
-      : 'IBM watsonx.ai, watsonx Orchestrate';
-    document.getElementById('resOutcomes').innerText = Array.isArray(data.proposal.business_outcomes)
-      ? data.proposal.business_outcomes.join(' · ')
-      : '—';
-  }
-
-  if (data.followup_email) {
-    const subjectInput = document.getElementById('resEmailSubject');
-    if (subjectInput) subjectInput.value = sanitizeRawText(data.followup_email.subject) || 'Follow-up: IBM Solution Overview';
-    
-    const emailBodyDiv = document.getElementById('resEmailBody');
-    if (emailBodyDiv) {
-      emailBodyDiv.innerHTML = parseMarkdownToHtml(data.followup_email.email_body) || 'Draft email will appear here.';
-    }
-  }
-
-  if (data.handoff_summary) {
-    document.getElementById('resHandoffSummary').innerHTML = parseMarkdownToHtml(data.handoff_summary.summary) || '—';
-    document.getElementById('resHandoffSteps').innerHTML = Array.isArray(data.handoff_summary.next_steps)
-      ? data.handoff_summary.next_steps.map(s => `<li>${sanitizeRawText(s)}</li>`).join('')
-      : '<li>—</li>';
-    document.getElementById('resHandoffRisks').innerHTML = Array.isArray(data.handoff_summary.risks)
-      ? data.handoff_summary.risks.map(r => `<li>${sanitizeRawText(r)}</li>`).join('')
-      : '<li>—</li>';
-  }
-
-  if (data.crm_stub) {
-    document.getElementById('resOppName').innerText = sanitizeRawText(data.crm_stub.opportunity_name) || '—';
-    document.getElementById('resOppAccount').innerText = sanitizeRawText(data.crm_stub.account_name) || '—';
-    document.getElementById('resOppValue').innerText = sanitizeRawText(data.crm_stub.estimated_value) || '—';
-    document.getElementById('resOppNotes').innerText = sanitizeRawText(data.crm_stub.notes) || '—';
-  }
-
-  if (data.deal_score) {
-    const score = data.deal_score.score || 0;
-    const scoreNumEl = document.getElementById('resScoreNum');
-    scoreNumEl.textContent = score + '/100';
-    const label = score >= 80 ? 'Deal Ready — High Probability' : score >= 60 ? 'Promising — Qualified Opportunity' : score >= 40 ? 'Needs Work — Missing Details' : 'Early Stage';
-    document.getElementById('resScoreLabel').textContent = label;
-    const color = score >= 80 ? 'var(--status-green)' : score >= 60 ? 'var(--ibm-blue)' : score >= 40 ? 'var(--status-amber)' : 'var(--status-red)';
-    scoreNumEl.style.color = color;
-    const bar = document.getElementById('resScoreBar');
-    bar.style.width = score + '%';
-    bar.style.background = color;
-
-    document.getElementById('resScoreMissing').innerHTML = Array.isArray(data.deal_score.missing_fields)
-      ? data.deal_score.missing_fields.map(f => `<li>${sanitizeRawText(f)}</li>`).join('')
-      : '<li>None identified</li>';
-    const actions = data.next_best_actions || data.deal_score.next_best_actions || [];
-    document.getElementById('resScoreActions').innerHTML = Array.isArray(actions)
-      ? actions.map(a => `<li>${sanitizeRawText(a)}</li>`).join('')
-      : '<li>Schedule discovery call</li>';
-  }
-}
-
-function formatEmailText(command, value = null) {
-  document.execCommand(command, false, value);
-  document.getElementById('resEmailBody').focus();
-}
-
-function insertEmailPlaceholder() {
-  const editor = document.getElementById('resEmailBody');
-  if (editor) {
-    // Avoid double signatures
-    if (!editor.innerHTML.includes('Senior IBM Client Solutions Architect')) {
-      editor.innerHTML += '<p><br>Best regards,<br><strong>[Your Name]</strong><br>Senior IBM Client Solutions Architect<br>Ingram Micro / IBM Partner Ecosystem</p>';
-    }
-  }
-}
-
-function copyEmailToClipboard() {
-  const subject = document.getElementById('resEmailSubject').value;
-  const emailBodyDiv = document.getElementById('resEmailBody');
-  const bodyText = emailBodyDiv ? emailBodyDiv.innerText : '';
-  const textToCopy = `Subject: ${subject}\n\n${bodyText}`;
-
-  navigator.clipboard.writeText(textToCopy).then(() => {
-    const copyBtns = document.querySelectorAll('.copy-email-btn');
-    copyBtns.forEach(btn => {
-      btn.innerHTML = '✓ Copied';
-      setTimeout(() => {
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Email';
-      }, 2000);
-    });
-  }).catch(() => {});
-}
-
-async function downloadPdf() {
-  if (!lastPackageData) {
-    alert('Please generate an opportunity package first.');
-    return;
-  }
-
-  const btn = document.getElementById('pdfBtn');
-  const origHTML = btn.innerHTML;
-  btn.textContent = 'Generating PDF…';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('/api/generate-pdf', {
-      method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify(lastPackageData),
-    });
-
-    if (!res.ok) throw new Error(`PDF API HTTP Error (${res.status})`);
-
-    const contentType = res.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      const data = await res.json();
-      if (data.download_url) {
-        window.open(data.download_url, '_blank');
-      } else {
-        throw new Error('No download URL returned');
-      }
-    } else {
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'Partner_Growth_Opportunity_Package.pdf';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }
-  } catch (err) {
-    console.warn('[PDF Download Fallback Triggered]', err);
-    const printWin = window.open('', '_blank');
-    if (printWin) {
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Partner Growth Copilot — Opportunity Package</title>
-          <style>
-            body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            h1 { color: #0f62fe; }
-            h2 { color: #0f172a; border-bottom: 2px solid #0f62fe; padding-bottom: 6px; margin-top: 30px; }
-            .section { margin-bottom: 24px; }
-          </style>
-        </head>
-        <body>
-          <h1>Partner Growth Copilot</h1>
-          <p><strong>IBM Enterprise Pre-Sales Solution Package</strong></p>
-          <hr>
-          <h2>1. IBM Solution Proposal</h2>
-          <p>${parseMarkdownToHtml(lastPackageData.proposal?.proposal || '')}</p>
-          <h2>2. Customer Follow-Up Email</h2>
-          <p><strong>Subject:</strong> ${lastPackageData.followup_email?.subject || ''}</p>
-          <p>${parseMarkdownToHtml(lastPackageData.followup_email?.email_body || '')}</p>
-          <h2>3. Technical Handoff Summary</h2>
-          <p>${parseMarkdownToHtml(lastPackageData.handoff_summary?.summary || '')}</p>
-          <h2>4. CRM Opportunity Stub</h2>
-          <p><strong>Opportunity:</strong> ${lastPackageData.crm_stub?.opportunity_name || ''}</p>
-          <p><strong>Estimated Value:</strong> ${lastPackageData.crm_stub?.estimated_value || ''}</p>
-          <script>window.onload = function() { window.print(); };</script>
-        </body>
-        </html>
-      `;
-      printWin.document.write(htmlContent);
-      printWin.document.close();
-    }
-  } finally {
-    btn.innerHTML = origHTML;
-    btn.disabled = false;
-  }
-}
-
-async function executeMode(mode) {
-  const dealInput = document.getElementById('dealInput').value.trim();
-  if (!dealInput) {
-    document.getElementById('dealInput').focus();
-    return;
-  }
-
-  document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
-  const activeChip = document.querySelector(`.mode-chip[data-mode="${mode}"]`);
-  if (activeChip) activeChip.classList.add('active');
-
-  const resultSection = document.getElementById('modeResult');
-  const card = document.getElementById('modeResultCard');
-  resultSection.classList.add('visible');
-  card.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto 12px"></div><span class="loader-text">Analyzing with watsonx.ai specialist mode…</span></div>';
-
-  const endpoint = {
-    dealCoach: '/api/deal-coach',
-    pilot: '/api/pilot-recommendation',
-    redTeam: '/api/red-team',
-  }[mode];
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify({
-        raw_input: dealInput,
-        industry: detectIndustry(dealInput),
-      }),
-    });
-
-    if (!res.ok) throw new Error(`API error (${res.status})`);
-    const data = await res.json();
-
-    if (mode === 'dealCoach') renderDealCoach(card, data);
-    else if (mode === 'pilot') renderPilot(card, data);
-    else if (mode === 'redTeam') renderRedTeam(card, data);
-  } catch (err) {
-    card.innerHTML = `<p style="color:var(--status-red);padding:20px">Error: ${err.message}</p>`;
-  }
-}
-
-function renderDealCoach(el, data) {
-  const score = data.readiness_score || 0;
-  const color = score >= 80 ? 'var(--status-green)' : score >= 60 ? 'var(--ibm-blue)' : score >= 40 ? 'var(--status-amber)' : 'var(--status-red)';
-  el.innerHTML = `
-    <div class="pane-header">
-      <h4>Deal Coach Strategic Feedback</h4>
-      <span class="badge">${data.readiness_label || 'Evaluation Complete'}</span>
-    </div>
-    <div class="score-display">
-      <div class="score-number" style="color:${color}">${score}/100</div>
-      <div class="score-bar"><div class="score-bar-fill" style="width:${score}%;background:${color}"></div></div>
-    </div>
-    ${data.coaching_notes ? `<div class="coaching-note">${parseMarkdownToHtml(data.coaching_notes)}</div>` : ''}
-    <div class="two-col">
-      <div class="two-col-item"><h5>Missing Information</h5><ul>${(data.missing_information || []).map(i => `<li>${sanitizeRawText(i)}</li>`).join('')}</ul></div>
-      <div class="two-col-item"><h5>Next Best Actions</h5><ul>${(data.next_best_actions || []).map(a => `<li>${sanitizeRawText(a)}</li>`).join('')}</ul></div>
-    </div>
-  `;
-}
-
-function renderPilot(el, data) {
-  el.innerHTML = `
-    <div class="pane-header">
-      <h4>Pilot Strategy Recommendation</h4>
-      <span class="badge">${data.pilot_name || 'IBM Viable Pilot'}</span>
-    </div>
-    <div style="font-size:15px; margin-bottom:20px; line-height:1.6;">${parseMarkdownToHtml(data.smallest_viable_pilot || '')}</div>
-    ${data.estimated_scope ? `
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px;">
-        <div style="background:var(--bg-inset); padding:12px; border-radius:8px; text-align:center;"><span style="font-size:20px; font-weight:800; color:var(--ibm-blue);">${data.estimated_scope.duration_weeks || '4-6'}</span><br><span style="font-size:11px; color:var(--text-muted);">Weeks</span></div>
-        <div style="background:var(--bg-inset); padding:12px; border-radius:8px; text-align:center;"><span style="font-size:20px; font-weight:800; color:var(--ibm-blue);">${data.estimated_scope.team_size || '3'}</span><br><span style="font-size:11px; color:var(--text-muted);">Team Size</span></div>
-        <div style="background:var(--bg-inset); padding:12px; border-radius:8px; text-align:center;"><span style="font-size:20px; font-weight:800; color:var(--ibm-blue);">${data.estimated_scope.estimated_cost_usd || '$25K-$50K'}</span><br><span style="font-size:11px; color:var(--text-muted);">Est. Cost</span></div>
-      </div>
-    ` : ''}
-    <div class="two-col">
-      <div class="two-col-item"><h5>Recommended IBM Products</h5><ul>${(data.recommended_ibm_products || []).map(p => `<li>${sanitizeRawText(p)}</li>`).join('')}</ul></div>
-      <div class="two-col-item"><h5>Measurable Success KPIs</h5><ul>${(data.success_kpis || []).map(k => `<li>${sanitizeRawText(k)}</li>`).join('')}</ul></div>
-    </div>
-  `;
-}
-
-function renderRedTeam(el, data) {
-  const objections = (data.likely_objections || []).map(obj => `
-    <div style="background:var(--bg-inset); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:10px;">
-      <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">${obj.stakeholder || 'Stakeholder'} &middot; ${obj.severity || 'MEDIUM'}</div>
-      <div style="font-size:14px; font-weight:700; margin-bottom:6px;">"${sanitizeRawText(obj.objection)}"</div>
-      ${obj.suggested_response ? `<div style="font-size:13px; color:var(--text-secondary); border-left:3px solid var(--ibm-blue); padding-left:10px;">${sanitizeRawText(obj.suggested_response)}</div>` : ''}
-    </div>
-  `).join('');
-
-  el.innerHTML = `
-    <div class="pane-header">
-      <h4>Red Team Objection & Risk Analysis</h4>
-    </div>
-    ${objections || '<p style="color:var(--text-muted)">No major objections identified.</p>'}
-    <div class="two-col" style="margin-top:16px">
-      <div class="two-col-item"><h5>Commercial Risks</h5><ul>${(data.commercial_risks || []).map(r => `<li>${sanitizeRawText(r)}</li>`).join('')}</ul></div>
-      <div class="two-col-item"><h5>Technical Risks</h5><ul>${(data.technical_risks || []).map(r => `<li>${sanitizeRawText(r)}</li>`).join('')}</ul></div>
-    </div>
-  `;
 }

@@ -16,6 +16,7 @@ import redTeamRoutes from './routes/redTeamRoutes';
 import pdfRoutes from './routes/pdfRoutes';
 import authRoutes from './routes/authRoutes';
 import conversationRoutes from './routes/conversationRoutes';
+import chatRoutes from './routes/chatRoutes';
 
 export const app = express();
 
@@ -44,6 +45,7 @@ app.use('/', redTeamRoutes);
 app.use('/', pdfRoutes);
 app.use('/', authRoutes);
 app.use('/', conversationRoutes);
+app.use('/', chatRoutes);
 
 // Fallback GET / for static index.html or JSON info if requested with Accept header
 app.get('/', (req: Request, res: Response) => {
@@ -70,5 +72,13 @@ app.get('/', (req: Request, res: Response) => {
       },
     });
   }
+});
+
+app.get('/app', (req: Request, res: Response) => {
+  res.sendFile(path.join(publicDir, 'app.html'));
+});
+
+app.get('/architecture', (req: Request, res: Response) => {
+  res.sendFile(path.join(publicDir, 'architecture.html'));
 });
 

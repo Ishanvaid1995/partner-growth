@@ -246,6 +246,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/GeneratePdfResponse'
 
+  /api/generate-docx:
+    post:
+      summary: Generate Downloadable Word (.docx) Package
+      description: >-
+        Generates an IBM-styled Word (.docx) document of the full pre-sales opportunity package and returns a direct absolute download URL. Use when the user requests an editable Word document or .docx package export.
+      operationId: generate_docx_package
+      tags:
+        - Documents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePdfRequest'
+      responses:
+        '200':
+          description: Word document package generated successfully. Returns JSON metadata with downloadable URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePdfResponse'
+
+  /api/chat:
+    post:
+      summary: Unified Conversational Chat & Package Generator
+      description: >-
+        Unified conversational endpoint handling both pre-sales deal package generation and intelligent follow-up Q&A with conversation history context.
+      operationId: unified_chat
+      tags:
+        - Conversational
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: What are the main technical risks for this deal?
+                history:
+                  type: array
+                  items:
+                    type: object
+                conversation_context:
+                  type: string
+      responses:
+        '200':
+          description: Chat response generated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  type:
+                    type: string
+                  content:
+                    type: string
+                  intent:
+                    type: string
+
 components:
   securitySchemes:
     ApiKeyAuth:
