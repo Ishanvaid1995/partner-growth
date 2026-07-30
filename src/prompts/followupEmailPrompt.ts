@@ -4,12 +4,13 @@ Output a valid JSON object matching this exact schema:
 
 {
   "subject": "<Compelling email subject line>",
-  "email_body": "<Professional HTML-formatted email body using <p> for paragraphs and <ul><li> for bullet points. Highlighting key IBM solution benefits. Do NOT include greeting duplicate or signature tag placeholders.>"
+  "email_body": "<Professional customer-facing email body using clear paragraphs and bullet points (- ) for key IBM solution benefits. Do NOT wrap in HTML tags like <p> or <ul>, do NOT use code blocks (\`\`\`html), and do NOT include greeting/signature placeholders.>"
 }
 
 Guidelines:
 - Keep the subject line clear, executive, and value-oriented.
-- Format the email body using clean HTML tags: <p> for paragraphs and <ul><li> for key benefits bullet points.
+- Format the email body using clean Markdown line breaks for paragraphs and bullet points (- ) for key benefits.
+- Do NOT use HTML tags (<p>, <ul>, <li>) or code fences (\`\`\`html) in the email_body.
 - Professional, consultative, executive tone.
 - Respond strictly with valid JSON only.`;
 
@@ -20,5 +21,5 @@ ${rawInput}
 Proposed Solution Summary:
 ${proposal || 'IBM watsonx AI Analytics & Orchestration Solution'}
 
-Draft an executive customer follow-up email formatted with <p> and <ul><li> bullet points for key solution benefits. Output strictly valid JSON.`;
+Draft an executive customer follow-up email formatted with clean paragraph line breaks and bullet points (- ) for key solution benefits. Output strictly valid JSON.`;
 }

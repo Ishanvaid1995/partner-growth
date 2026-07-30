@@ -15,7 +15,7 @@ router.get('/api/chat-service', (req: Request, res: Response): void => {
 });
 
 router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promise<void> => {
-  const { message, history = [], conversation_context = '' } = req.body || {};
+  const { message, history = [], conversation_context = '', thread_id = 'default-thread' } = req.body || {};
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'Bad Request', message: 'message is required.' });
@@ -35,7 +35,11 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
 
     const messages = [];
     
-    // Include the context if it's a follow-up conversation
+    messages.push({
+      role: 'system',
+      content: `IMPORTANT: Do NOT generate ASCII box-and-arrow diagrams for architectures. Instead, describe the architecture as a clean ordered list or a proper markdown table with columns like "Layer | IBM Product | Role". When writing follow-up email drafts, format as **Subject:** <Subject text> followed directly by the email body. Do NOT include "Body (HTML):" or "Email Body:" label headers, and never wrap email text in HTML tags (<p>, <ul>, <li>) or code fences (\`\`\`html). Before generating any clarifying question, first extract all deal details already present in \`history\` (account name, industry, use case, budget, timeline, stakeholders, tech stack). Never re-ask for information already provided. If the user says something like "don't know", "just create it", "skip", or "go ahead", immediately call generate-full-opportunity-package with whatever fields are known and mark any missing ones as "Not specified" rather than asking again.`
+    });
+
     if (conversation_context) {
       messages.push({
         role: 'system',
@@ -44,20 +48,33 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
     }
 
     const recentHistory = (history as Array<{ role: string; content: string }>).slice(-10);
-    for (const turn of recentHistory) {
-      if (turn.role && turn.content) {
-        messages.push({ role: turn.role, content: String(turn.content) });
-      }
-    }
-    messages.push({ role: 'user', content: message.trim() });
+    console.log(`[Proxy] History items: ${recentHistory.length}`);
 
-    console.log(`[Proxy] Sending message to Orchestrate Agent ${agentId}...`);
+    let contextString = '';
+    if (recentHistory.length > 0) {
+      contextString += `[Previous Conversation History]\n`;
+      for (const turn of recentHistory) {
+        if (turn.role && turn.content) {
+          contextString += `${turn.role.toUpperCase()}: ${turn.content}\n`;
+        }
+      }
+      contextString += `[End of History]\n\n`;
+    }
+
+    const finalUserMessage = contextString 
+      ? `${contextString}Current User Message:\n${message.trim()}`
+      : message.trim();
+
+    messages.push({ role: 'user', content: finalUserMessage });
+
+    console.log(`[Proxy] Sending request to Orchestrate Agent ${agentId}...`);
     
     const response = await fetch(orchestrateUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-IBM-THREAD-ID': thread_id
       },
       body: JSON.stringify({
         messages,
@@ -76,14 +93,12 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content || '';
     
-    console.log('[Proxy] Received response from Orchestrate Agent');
+    console.log('[Proxy] Response received from Orchestrate Agent');
 
-    // Attempt to parse out structured data if Orchestrate returned a JSON payload
     let parsedPackage = null;
     let isProposal = false;
     let isEmail = false;
 
-    // Check if Orchestrate generated a package based on the text or embedded JSON
     try {
       const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -98,14 +113,19 @@ router.post('/api/chat', apiKeyAuth, async (req: Request, res: Response): Promis
         }
       }
     } catch(e) {
-      // Not structured JSON or unparseable, handle as regular text
     }
 
-    // Heuristic fallbacks if JSON parsing failed but structure is detected
     if (!parsedPackage) {
-      if (rawContent.includes('Solution Name:') || rawContent.includes('Recommended IBM Stack') || rawContent.includes('### 1. CRM Opportunity Stub')) {
+      if (
+        rawContent.includes('IBM Solution Proposal') ||
+        rawContent.includes('Proposed Architecture') ||
+        rawContent.includes('Solution Name:') ||
+        rawContent.includes('Recommended IBM Stack') ||
+        rawContent.includes('CRM Opportunity Stub') ||
+        rawContent.includes('Implementation Roadmap') ||
+        rawContent.includes('Proposed IBM Stack')
+      ) {
         isProposal = true;
-        // The UI's parseMarkdownToHtml will handle raw markdown rendering if we just pass it in proposal text
         parsedPackage = {
           proposal: {
             proposal: rawContent

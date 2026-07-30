@@ -156,6 +156,10 @@ async function sendChatMessage() {
   setSendDisabled(true);
 
   try {
+    if (!window.chatThreadId) {
+      window.chatThreadId = 'thread-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+    }
+
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: HEADERS,
@@ -163,6 +167,7 @@ async function sendChatMessage() {
         message: text,
         history: chatHistory.slice(0, -1),
         conversation_context: conversationContext,
+        thread_id: window.chatThreadId
       }),
     });
 
@@ -331,7 +336,7 @@ function appendEmailCard(emailData) {
   if (!messages || !emailData) return;
 
   const subject = sanitizeText(emailData.subject) || 'Executive Follow-Up Email';
-  const rawBody = emailData.email_body || emailData.content || '';
+  const rawBody = cleanHtmlToMarkdown(emailData.email_body || emailData.content || '');
   const bodyHtml = parseMarkdownToHtml(rawBody);
 
   const row = document.createElement('div');
@@ -372,14 +377,55 @@ function safeEncodeString(str) {
   return encodeURIComponent(str || '');
 }
 
+function showToast(message) {
+  let toast = document.getElementById('pgcToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'pgcToast';
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      z-index: 9999;
+      opacity: 0;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 90vw;
+      text-align: center;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> ${escapeHtml(message)}`;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+
+  if (toast.timeoutId) clearTimeout(toast.timeoutId);
+  toast.timeoutId = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2500);
+}
+
 function copyEmailText(encodedSubject, encodedBody) {
   const subject = decodeURIComponent(encodedSubject);
   const body = decodeURIComponent(encodedBody);
   const fullText = `Subject: ${subject}\n\n${body}`;
   navigator.clipboard.writeText(fullText).then(() => {
-    alert('Executive email copied to clipboard!');
+    showToast('Executive email copied to clipboard');
   }).catch(() => {
-    alert('Subject: ' + subject);
+    showToast('Copied subject: ' + subject);
   });
 }
 
@@ -445,8 +491,31 @@ function triggerFileDownload(url, filename) {
   a.remove();
 }
 
+function getActivePackageData() {
+  if (lastPackageData && (lastPackageData.proposal || lastPackageData.raw_input)) {
+    return lastPackageData;
+  }
+  const messages = document.getElementById('chatMessages');
+  if (messages) {
+    const bubbles = Array.from(messages.querySelectorAll('.formatted-content, .chat-bubble--assistant'));
+    if (bubbles.length > 0) {
+      const fullText = bubbles.map(b => b.innerText || b.textContent || '').join('\n\n');
+      if (fullText.trim().length > 30) {
+        lastPackageData = {
+          proposal: {
+            proposal: fullText
+          }
+        };
+        return lastPackageData;
+      }
+    }
+  }
+  return null;
+}
+
 async function downloadPdf() {
-  if (!lastPackageData) {
+  const pkg = getActivePackageData();
+  if (!pkg) {
     appendErrorBubble('No proposal available. Please generate a package first.');
     return;
   }
@@ -456,7 +525,7 @@ async function downloadPdf() {
     const res = await fetch('/api/generate-pdf', {
       method: 'POST',
       headers: HEADERS,
-      body: JSON.stringify(lastPackageData),
+      body: JSON.stringify(pkg),
     });
     const data = await res.json();
     if (data.download_url) {
@@ -472,7 +541,8 @@ async function downloadPdf() {
 }
 
 async function downloadWord() {
-  if (!lastPackageData) {
+  const pkg = getActivePackageData();
+  if (!pkg) {
     appendErrorBubble('No proposal available. Please generate a package first.');
     return;
   }
@@ -480,7 +550,7 @@ async function downloadWord() {
     const res = await fetch('/api/generate-docx', {
       method: 'POST',
       headers: HEADERS,
-      body: JSON.stringify(lastPackageData),
+      body: JSON.stringify(pkg),
     });
     const data = await res.json();
     if (data.download_url) {
@@ -651,49 +721,125 @@ function loadConversation(convId, convData) {
   closeMobileSidebar();
 }
 
+function cleanHtmlToMarkdown(text) {
+  if (!text) return '';
+  let str = String(text).trim();
+
+  // Strip unwanted label artifacts like "Body (HTML):" or "Email Body (HTML):" or "Email Body:"
+  str = str.replace(/^(?:Email\s*)?Body\s*(?:\(HTML\))?:?\s*$/gmi, '')
+           .replace(/^Body\s*\(HTML\):?\s*/gmi, '')
+           .replace(/^Email\s*Body:?\s*/gmi, '');
+
+  // If wrapped in ```html ... ``` code fences containing HTML tags, unwrap them
+  str = str.replace(/```(?:html|xml)?\s*([\s\S]*?)\s*```/gi, '$1');
+
+  // Convert HTML elements (<p>, <ul>, <ol>, <li>, <br>, <strong>) into clean markdown text
+  if (/<(?:p|ul|ol|li|br|h[1-6]|div|span)\b/i.test(str)) {
+    str = str.replace(/<p\b[^>]*>/gi, '')
+             .replace(/<\/p>/gi, '\n\n')
+             .replace(/<ul\b[^>]*>/gi, '\n')
+             .replace(/<\/ul>/gi, '\n')
+             .replace(/<ol\b[^>]*>/gi, '\n')
+             .replace(/<\/ol>/gi, '\n')
+             .replace(/<li\b[^>]*>/gi, '- ')
+             .replace(/<\/li>/gi, '\n')
+             .replace(/<br\s*\/?>/gi, '\n')
+             .replace(/<strong\b[^>]*>(.*?)<\/strong>/gi, '**$1**')
+             .replace(/<b\b[^>]*>(.*?)<\/b>/gi, '**$1**')
+             .replace(/<em\b[^>]*>(.*?)<\/em>/gi, '*$1*')
+             .replace(/<i\b[^>]*>(.*?)<\/i>/gi, '*$1*')
+             .replace(/<[^>]+>/g, '')
+             .replace(/\n{3,}/g, '\n\n');
+  }
+
+  return str.trim();
+}
+
 function parseMarkdownToHtml(markdownText) {
   if (!markdownText) return '';
   let clean = sanitizeText(markdownText);
+  clean = cleanHtmlToMarkdown(clean);
 
+  // Strip stray horizontal rules early
+  clean = clean.replace(/^(?:---|___|\*\*\*)[ \t]*$/gm, '');
+
+  // 1. Extract triple backtick code blocks to protect them
+  const codeBlocks = [];
+  clean = clean.replace(/```([\s\S]*?)```/g, (match, code) => {
+    codeBlocks.push(code);
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+  });
+
+  // Remove package metadata lines if they leaked
   clean = clean.replace(/^\{?\s*"proposal"\s*:\s*"/i, '')
                .replace(/^"proposal"\s*:\s*"/i, '')
                .replace(/"\s*\}?\s*$/, '');
 
-  clean = clean.replace(/\s*(#{1,3})\s+([^\n]+)/g, '\n\n$1 $2\n\n');
-  clean = clean.replace(/(\d+\.\s+[A-Z][^\n]{3,60})\n(?=[A-Za-z])/g, '$1\n\n');
+  // Render Subject lines as executive Subject Card banners
+  clean = clean.replace(
+    /^(?:\*\*|\*)?Subject:(?:\*\*|\*)?\s*(.+)$/gmi,
+    '<div style="background: var(--bg-inset, #f4f6f8); border: 1px solid var(--border-light, #e0e0e0); border-left: 4px solid var(--ibm-blue, #0f62fe); border-radius: 6px; padding: 10px 14px; margin: 12px 0 14px 0;"><div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ibm-blue, #0f62fe); margin-bottom: 3px;">Subject</div><div style="font-size: 14px; font-weight: 700; color: var(--text-primary, #161616);">$1</div></div>'
+  );
 
-  clean = clean.replace(/(?:^|\n)(\|[^\n]+\|(?:\n\|[-:\s|]+\|)?(?:\n\|[^\n]+\|)*)/g, (match) => {
-    const tableLines = match.trim().split('\n').filter(l => l.trim());
-    if (tableLines.length < 2) return match;
-    const headers = tableLines[0].split('|').map(c => c.trim()).filter(Boolean);
-    const dataStart = tableLines[1]?.match(/^\|[-:\s|]+\|$/) ? 2 : 1;
-    const dataRows = tableLines.slice(dataStart).map(line =>
-      line.split('|').map(c => c.trim()).filter(Boolean)
-    ).filter(row => row.length > 0);
-    if (!headers.length) return match;
-
-    let tableHtml = '<div class="table-responsive"><table class="md-table"><thead><tr>';
-    headers.forEach(h => { tableHtml += `<th>${boldInline(escapeHtml(h))}</th>`; });
-    tableHtml += '</tr></thead><tbody>';
-    dataRows.forEach((row, ri) => {
-      tableHtml += `<tr class="${ri % 2 === 1 ? 'alt-row' : ''}">`;
-      row.forEach(cell => { tableHtml += `<td>${boldInline(escapeHtml(cell))}</td>`; });
-      tableHtml += '</tr>';
-    });
-    tableHtml += '</tbody></table></div>';
-    return '\n\n' + tableHtml + '\n\n';
-  });
-
+  // Convert headers
   clean = clean.replace(/^###\s+(.+)$/gm, '<h4>$1</h4>');
   clean = clean.replace(/^##\s+(.+)$/gm, '<h3>$1</h3>');
   clean = clean.replace(/^#\s+(.+)$/gm, '<h2>$1</h2>');
   clean = clean.replace(/^(\d+\.\s+[A-Z][^\n]{2,60})$/gm, '<h3>$1</h3>');
 
-  clean = clean.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  clean = clean.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  clean = clean.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-  clean = clean.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // 2. Parse Markdown Tables robustly line-by-line
+  const lines = clean.split('\n');
+  const newLines = [];
+  let inTable = false;
+  let tableRows = [];
 
+  function flushTable() {
+    if (tableRows.length === 0) return;
+    
+    const dataRows = tableRows.filter(row => !/^\|?[-:\s|]+\|?$/.test(row.trim()));
+    
+    if (dataRows.length > 0) {
+      let tableHtml = '<div class="table-responsive"><table class="md-table">';
+      
+      dataRows.forEach((row, ri) => {
+        const cells = row.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        if (ri === 0) {
+          tableHtml += '<thead><tr>';
+          cells.forEach(c => tableHtml += `<th>${boldInline(escapeHtml(c))}</th>`);
+          tableHtml += '</tr></thead><tbody>';
+        } else {
+          tableHtml += `<tr class="${ri % 2 === 1 ? 'alt-row' : ''}">`;
+          cells.forEach(c => tableHtml += `<td>${boldInline(escapeHtml(c))}</td>`);
+          tableHtml += '</tr>';
+        }
+      });
+      tableHtml += '</tbody></table></div>';
+      newLines.push(tableHtml);
+    }
+    tableRows = [];
+    inTable = false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('|')) {
+      inTable = true;
+      tableRows.push(line);
+    } else {
+      if (inTable) {
+        if (line === '' && i + 1 < lines.length && lines[i+1].trim().startsWith('|')) {
+          continue;
+        }
+        flushTable();
+      }
+      newLines.push(lines[i]);
+    }
+  }
+  if (inTable) flushTable();
+  
+  clean = newLines.join('\n');
+
+  // Convert Lists
   clean = clean.replace(
     /((?:^[ \t]*[-*•+][ \t]+.+(?:\n|$))+)/gm,
     (match) => {
@@ -714,16 +860,24 @@ function parseMarkdownToHtml(markdownText) {
     }
   );
 
+  // Group paragraphs
   const parts = clean.split('\n\n');
   const result = parts.map(block => {
     const t = block.trim();
     if (!t) return '';
-    if (/^<(h[2-4]|ul|ol|div|table|p)/i.test(t)) return t;
-    const lines = t.split('\n').map(l => l.trim()).filter(Boolean);
-    return `<p>${lines.join('<br>')}</p>`;
+    if (/^(__CODE|<h[2-4]|<ul|<ol|<div|<table)/i.test(t)) return t;
+    const pLines = t.split('\n').map(l => l.trim()).filter(Boolean);
+    return `<p>${boldInline(pLines.join('<br>'))}</p>`;
   });
 
-  return result.filter(Boolean).join('\n');
+  let finalHtml = result.filter(Boolean).join('\n');
+
+  // Restore Code Blocks
+  codeBlocks.forEach((code, index) => {
+    finalHtml = finalHtml.replace(`__CODE_BLOCK_${index}__`, `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+  });
+
+  return finalHtml;
 }
 
 function boldInline(text) {
@@ -740,7 +894,7 @@ function sanitizeText(input) {
     ? (input.proposal ? (typeof input.proposal === 'string' ? input.proposal : (input.proposal.proposal || '')) : input.email_body || input.summary || JSON.stringify(input))
     : String(input).trim();
 
-  str = str.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+  str = str.replace(/^```(?:json|html)\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
 
   if (str.includes('"email_body"') || str.includes('"proposal"') || str.includes('"solution_name"') || str.startsWith('{')) {
     try {

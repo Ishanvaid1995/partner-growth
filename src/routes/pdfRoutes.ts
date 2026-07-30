@@ -38,6 +38,13 @@ function cleanText(text: string): string {
   if (!text) return '';
   let str = String(text).trim();
 
+  str = str.replace(/&quot;/gi, '"')
+           .replace(/&amp;/gi, '&')
+           .replace(/&lt;/gi, '<')
+           .replace(/&gt;/gi, '>')
+           .replace(/&#39;/gi, "'")
+           .replace(/&nbsp;/gi, ' ');
+
   if (str.startsWith('{') && (str.includes('"proposal"') || str.includes('"email_body"'))) {
     try {
       const parsed = JSON.parse(str);
@@ -55,15 +62,16 @@ function cleanText(text: string): string {
 
   return str
     .replace(/<[^>]*>/g, '')
-    .replace(/^#{1,3}\s+/gm, '')
+    .replace(/^#{1,4}\s+/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
     .replace(/`{1,3}json`{0,3}/gi, '')
     .replace(/`{1,3}/g, '')
     .replace(/\\n/g, '\n')
     .replace(/\\"/g, '"')
-    .replace(/\|[-: |]+\|/gm, '')
-    .replace(/^\s*\|\s*$/gm, '')
+    .replace(/\\'/g, "'")
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -88,7 +96,9 @@ function parseProposalSections(proposalText: string): Array<{ title: string; con
     const trimmed = line.trim();
     if (/^\d+\.\s+/.test(trimmed) && trimmed.length < 80) {
       if (currentTitle || currentContent.length) {
-        sections.push({ title: currentTitle, content: currentContent.join('\n').trim() });
+        if (!/email|follow-up|followup/i.test(currentTitle)) {
+          sections.push({ title: currentTitle, content: currentContent.join('\n').trim() });
+        }
       }
       currentTitle = trimmed.replace(/^\d+\.\s+/, '');
       currentContent = [];
@@ -96,7 +106,7 @@ function parseProposalSections(proposalText: string): Array<{ title: string; con
       currentContent.push(trimmed);
     }
   }
-  if (currentTitle || currentContent.length) {
+  if ((currentTitle || currentContent.length) && !/email|follow-up|followup/i.test(currentTitle)) {
     sections.push({ title: currentTitle, content: currentContent.join('\n').trim() });
   }
   return sections;
@@ -164,6 +174,94 @@ function drawPdfTable(
   });
 
   return currentY + 10;
+}
+
+function renderFormattedPdfContent(
+  doc: typeof PDFDocument.prototype,
+  rawContent: string,
+  startY: number
+): number {
+  let currentY = startY;
+  if (!rawContent || !rawContent.trim()) return currentY;
+
+  const lines = rawContent.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    let line = lines[i].trim();
+
+    if (!line) {
+      i++;
+      continue;
+    }
+
+    if (line.startsWith('|')) {
+      const tableRows: string[][] = [];
+      let headers: string[] = [];
+
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        const rowStr = lines[i].trim();
+        if (/^\|?[-:\s|]+\|?$/.test(rowStr)) {
+          i++;
+          continue;
+        }
+
+        const cells = rowStr.replace(/^\||\|$/g, '').split('|').map(c => cleanText(c));
+        if (headers.length === 0) {
+          headers = cells;
+        } else {
+          tableRows.push(cells);
+        }
+        i++;
+      }
+
+      if (headers.length > 0) {
+        const totalWidth = 495;
+        const colCount = headers.length;
+        const colWidths = Array(colCount).fill(Math.floor(totalWidth / colCount));
+        colWidths[colCount - 1] += totalWidth - colWidths.reduce((a, b) => a + b, 0);
+
+        if (currentY > 680) { doc.addPage(); currentY = 50; }
+        currentY = drawPdfTable(doc, currentY, headers, tableRows, colWidths, 50);
+      }
+      continue;
+    }
+
+    const isSubhead = /^(?:#{1,4}\s+|(?:\*\*|\*)?[A-Z][A-Za-z0-9\s\&\-\(\)]+(?:\*\*|\*)?:?$)/.test(line) && line.length < 90 && !line.startsWith('-');
+    if (isSubhead) {
+      const cleanSubhead = cleanText(line).replace(/^[:\s]+|[:\s]+$/g, '');
+      if (cleanSubhead) {
+        if (currentY > 700) { doc.addPage(); currentY = 50; }
+        currentY += 6;
+        doc.fillColor('#0f172a').fontSize(11).font('Helvetica-Bold').text(cleanSubhead, 50, currentY);
+        currentY += doc.heightOfString(cleanSubhead, { width: 495 }) + 6;
+      }
+      i++;
+      continue;
+    }
+
+    if (/^[-*•+]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+      const bulletText = cleanText(line.replace(/^[-*•+\d.]+\s*/, ''));
+      if (bulletText) {
+        if (currentY > 710) { doc.addPage(); currentY = 50; }
+        doc.fillColor('#0f62fe').fontSize(10).font('Helvetica-Bold').text('•', 56, currentY);
+        doc.fillColor('#334155').fontSize(9).font('Helvetica').text(bulletText, 68, currentY, { width: 477, lineGap: 2 });
+        currentY += Math.max(14, doc.heightOfString(bulletText, { width: 477 }) + 4);
+      }
+      i++;
+      continue;
+    }
+
+    const paraText = cleanText(line);
+    if (paraText) {
+      if (currentY > 700) { doc.addPage(); currentY = 50; }
+      doc.fillColor('#334155').fontSize(9).font('Helvetica').text(paraText, 50, currentY, { width: 495, lineGap: 3 });
+      currentY += doc.heightOfString(paraText, { width: 495 }) + 8;
+    }
+    i++;
+  }
+
+  return currentY;
 }
 
 router.get('/downloads/:filename', (req: Request, res: Response): void => {
@@ -400,22 +498,10 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
       [150, 345], 50
     );
 
-    // 3. Executive Follow-Up Email
+    // 3. Technical Handoff Summary
     y += 10;
     if (y > 680) { doc.addPage(); y = 50; }
-    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('3. Executive Follow-Up Email', 50, y);
-    y += 18;
-
-    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text(`Subject: ${cleanText(followup_email.subject)}`, 50, y);
-    y += 16;
-
-    const emailBodyClean = cleanText(followup_email.email_body);
-    doc.fillColor('#334155').fontSize(9).font('Helvetica').text(emailBodyClean, 50, y, { width: 495, lineGap: 3 });
-    y += doc.heightOfString(emailBodyClean, { width: 495 }) + 16;
-
-    // 4. Technical Handoff Summary
-    if (y > 680) { doc.addPage(); y = 50; }
-    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('4. Technical Handoff Summary', 50, y);
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('3. Technical Handoff Summary', 50, y);
     y += 18;
 
     if (handoff_summary.summary) {
@@ -436,10 +522,10 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
       handoffRows, [60, 235, 200], 50
     );
 
-    // 5. IBM Solution Proposal Blueprint
+    // 4. IBM Solution Proposal Blueprint
     if (y > 640) { doc.addPage(); y = 50; }
     y += 10;
-    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('5. IBM Solution Proposal Blueprint', 50, y);
+    doc.fillColor('#0f62fe').fontSize(13).font('Helvetica-Bold').text('4. IBM Solution Proposal Blueprint', 50, y);
     y += 18;
 
     if (proposal.solution_name) {
@@ -471,16 +557,15 @@ const handlePdfGeneration = async (req: Request, res: Response): Promise<void> =
     }
 
     for (const section of proposalSections) {
-      if (!section.content || section.content.length < 10) continue;
-      if (section.title.toLowerCase().includes('executive summary')) continue;
+      if (!section.content || section.content.trim().length < 10) continue;
+      if (/executive summary|follow-up|followup|email/i.test(section.title)) continue;
 
-      if (y > 700) { doc.addPage(); y = 50; }
-      doc.fillColor('#0f172a').fontSize(10.5).font('Helvetica-Bold').text(section.title, 50, y);
-      y += 14;
+      if (y > 680) { doc.addPage(); y = 50; }
+      doc.fillColor('#0f172a').fontSize(11).font('Helvetica-Bold').text(section.title, 50, y);
+      y += doc.heightOfString(section.title, { width: 495 }) + 8;
 
-      const text = section.content.slice(0, 600);
-      doc.fillColor('#334155').fontSize(9).font('Helvetica').text(text, 50, y, { width: 495, lineGap: 3 });
-      y += doc.heightOfString(text, { width: 495 }) + 8;
+      y = renderFormattedPdfContent(doc, section.content, y);
+      y += 12;
     }
 
     const pageCount = doc.bufferedPageRange().count;
@@ -644,11 +729,6 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
       ],
     });
 
-    const followup = payload.followup_email || {
-      subject: payload.subject || `Follow-up: ${proposal.solution_name || 'IBM Solution Proposal'} Overview`,
-      email_body: payload.email_body || 'As discussed, IBM offers an enterprise-grade solution tailored to your operational goals.',
-    };
-
     const stackList = Array.isArray(proposal.recommended_ibm_stack) && proposal.recommended_ibm_stack.length > 0
       ? proposal.recommended_ibm_stack
       : ['IBM Watson IoT', 'IBM Cloud Pak for Data', 'IBM Watson Studio', 'IBM Cloud Pak for Automation', 'Red Hat OpenShift'];
@@ -704,23 +784,9 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
         spacing: { after: 240 },
       }),
 
-      // 3. Executive Follow-Up Email
+      // 3. Technical Handoff Summary
       new Paragraph({
-        children: [new TextRun({ text: '3. Executive Follow-Up Email', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
-        spacing: { before: 200, after: 120 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: `Subject: ${cleanText(followup.subject || '')}`, bold: true, size: 22, color: DARK, font: 'Calibri' })],
-        spacing: { after: 100 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: cleanText(followup.email_body || ''), size: 19, color: GRAY, font: 'Calibri' })],
-        spacing: { after: 300 },
-      }),
-
-      // 4. Technical Handoff Summary
-      new Paragraph({
-        children: [new TextRun({ text: '4. Technical Handoff Summary', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
+        children: [new TextRun({ text: '3. Technical Handoff Summary', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
         spacing: { before: 200, after: 120 },
       }),
       new Paragraph({
@@ -730,9 +796,9 @@ const handleDocxGeneration = async (req: Request, res: Response): Promise<void> 
       handoffTable,
       new Paragraph({ spacing: { after: 300 } }),
 
-      // 5. IBM Solution Proposal Blueprint
+      // 4. IBM Solution Proposal Blueprint
       new Paragraph({
-        children: [new TextRun({ text: '5. IBM Solution Proposal Blueprint', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
+        children: [new TextRun({ text: '4. IBM Solution Proposal Blueprint', bold: true, size: 30, color: IBM_BLUE, font: 'Calibri' })],
         spacing: { before: 200, after: 120 },
       }),
       new Paragraph({

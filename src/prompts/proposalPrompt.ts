@@ -28,6 +28,7 @@ Stack Alignment Rules:
 
 Guidelines:
 - Include clean Markdown Tables (| Layer | IBM Service | Role |) for Architecture Overview, Business Outcomes, and Implementation Roadmap.
+- For Section 3 (Executive Follow-Up Email), format as **Subject:** <Subject text> followed directly by the email body. Do NOT include "Body (HTML):" or "Email Body:" label headers, do NOT use HTML tags (<p>, <ul>, <li>), and do NOT use code fences (\`\`\`html).
 - Tailor the solution to the specified customer input and industry context.
 - Avoid placeholder contact info or unverified pricing guarantees.
 `;

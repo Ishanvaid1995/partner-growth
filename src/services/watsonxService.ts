@@ -173,11 +173,51 @@ function cleanProposalText(text: string): string {
     }
   }
 
-  return clean
+  clean = clean
     .replace(/\\n/g, '\n')
     .replace(/\\"/g, '"')
     .replace(/^"|"$/g, '')
+    .replace(/^(?:Email\s*)?Body\s*(?:\(HTML\))?:?\s*$/gmi, '')
+    .replace(/^Body\s*\(HTML\):?\s*/gmi, '')
     .trim();
+
+  return clean;
+}
+
+export function formatEmailBodyClean(text: string): string {
+  if (!text) return '';
+  let str = text.trim();
+
+  // Strip markdown code fences like ```html ... ```
+  str = str.replace(/^```(?:html|json|markdown)?\s*/gi, '')
+           .replace(/```\s*$/g, '')
+           .trim();
+
+  // Strip label headers like Body (HTML):
+  str = str.replace(/^(?:Email\s*)?Body\s*(?:\(HTML\))?:?\s*$/gmi, '')
+           .replace(/^Body\s*\(HTML\):?\s*/gmi, '');
+
+  // Convert HTML elements to clean markdown line breaks & bullet points
+  str = str.replace(/<p\b[^>]*>/gi, '')
+           .replace(/<\/p>/gi, '\n\n')
+           .replace(/<ul\b[^>]*>/gi, '\n')
+           .replace(/<\/ul>/gi, '\n')
+           .replace(/<ol\b[^>]*>/gi, '\n')
+           .replace(/<\/ol>/gi, '\n')
+           .replace(/<li\b[^>]*>/gi, '- ')
+           .replace(/<\/li>/gi, '\n')
+           .replace(/<br\s*\/?>/gi, '\n')
+           .replace(/<strong\b[^>]*>(.*?)<\/strong>/gi, '**$1**')
+           .replace(/<b\b[^>]*>(.*?)<\/b>/gi, '**$1**')
+           .replace(/<em\b[^>]*>(.*?)<\/em>/gi, '*$1*')
+           .replace(/<i\b[^>]*>(.*?)<\/i>/gi, '*$1*')
+           .replace(/<[^>]+>/g, '') // Strip remaining HTML tags
+           .replace(/\\n/g, '\n')
+           .replace(/\\"/g, '"')
+           .replace(/\n{3,}/g, '\n\n')
+           .trim();
+
+  return str;
 }
 
 export class WatsonxService {
@@ -232,13 +272,7 @@ export class WatsonxService {
         const parsed = JSON.parse(sanitizedJsonStr) as any;
 
         if (parsed.email_body && typeof parsed.email_body === 'string') {
-          parsed.email_body = parsed.email_body
-            .replace(/```json/gi, '')
-            .replace(/```/g, '')
-            .replace(/\\n/g, '\n')
-            .replace(/\\"/g, '"')
-            .replace(/^"|"$/g, '')
-            .trim();
+          parsed.email_body = formatEmailBodyClean(parsed.email_body);
         }
 
         if (parsed.proposal) {

@@ -42,7 +42,7 @@ paths:
     post:
       summary: Generate Full Pre-Sales Opportunity Package
       description: >-
-        Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step.
+        Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step. IMPORTANT FALLBACK BEHAVIOR: If the user says 'don't know', 'just create it', 'skip', or similar, you MUST call this operation immediately with skipclarification=true and mark any unknown fields as 'Not specified'. Do not ask follow-up questions in this state.
       operationId: generate_full_opportunity_package
       requestBody:
         required: true
@@ -272,7 +272,7 @@ paths:
     post:
       summary: Unified Conversational Chat & Package Generator
       description: >-
-        Unified conversational endpoint handling both pre-sales deal package generation and intelligent follow-up Q&A with conversation history context.
+        Unified conversational endpoint handling both pre-sales deal package generation and intelligent follow-up Q&A with conversation history context. IMPORTANT FALLBACK BEHAVIOR: Before asking any clarifying questions, extract all available deal details from the conversation history. If the user indicates they want to skip clarification (e.g. 'don't know', 'just create it'), immediately generate the package with known details and mark missing ones as 'Not specified'.
       operationId: unified_chat
       tags:
         - Conversational
@@ -371,6 +371,19 @@ components:
         use_case:
           type: string
           example: AI inventory demand forecasting
+        conversationhistory:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+          description: Context from previous chat turns to avoid re-asking questions.
+        skipclarification:
+          type: boolean
+          description: Flag indicating the agent should generate the package immediately with known fields and NOT ask clarifying questions.
 
     ProposalResult:
       type: object
