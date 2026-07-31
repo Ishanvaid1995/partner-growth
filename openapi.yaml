@@ -262,11 +262,33 @@ paths:
               $ref: '#/components/schemas/GeneratePdfRequest'
       responses:
         '200':
-          description: Word document package generated successfully. Returns JSON metadata with downloadable URL.
+          description: Word (.docx) package generated successfully. Returns JSON metadata with downloadable URL.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GeneratePdfResponse'
+
+  /push-to-salesforce:
+    post:
+      summary: Push Opportunity Stub to Salesforce CRM
+      description: >-
+        Creates a real Opportunity record in the connected Salesforce org from a generated CRM stub. Use when the user asks to actually log, push, or sync this opportunity into Salesforce.
+      operationId: pushtosalesforce
+      tags:
+        - CRM Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityResult'
+      responses:
+        '200':
+          description: Opportunity record created in Salesforce successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushToSalesforceResponse'
 
   /api/chat:
     post:
@@ -720,3 +742,33 @@ components:
         summary:
           type: string
           example: PDF package generated successfully. Direct download link generated.
+
+    PushToSalesforceResponse:
+      type: object
+      required:
+        - success
+        - salesforceopportunityid
+        - salesforceurl
+      properties:
+        success:
+          type: boolean
+          example: true
+        salesforceopportunityid:
+          type: string
+          example: 006ak00000XyZ12AAV
+        salesforce_opportunity_id:
+          type: string
+          example: 006ak00000XyZ12AAV
+        salesforceurl:
+          type: string
+          example: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view
+        salesforce_url:
+          type: string
+          example: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view
+        account_id:
+          type: string
+          example: 001ak00000AbC34AAW
+        display_message:
+          type: string
+          example: Successfully created Salesforce Opportunity "IBM Pre-Sales Opportunity" (ID: 006ak00000XyZ12AAV). Direct URL: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view
+

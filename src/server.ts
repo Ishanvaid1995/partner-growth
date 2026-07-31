@@ -17,6 +17,7 @@ import pdfRoutes from './routes/pdfRoutes';
 import authRoutes from './routes/authRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import chatRoutes from './routes/chatRoutes';
+import salesforceRoutes from './routes/salesforceRoutes';
 
 export const app = express();
 
@@ -46,6 +47,7 @@ app.use('/', pdfRoutes);
 app.use('/', authRoutes);
 app.use('/', conversationRoutes);
 app.use('/', chatRoutes);
+app.use('/', salesforceRoutes);
 
 // Fallback GET / for static index.html or JSON info if requested with Accept header
 app.get('/', (req: Request, res: Response) => {
@@ -69,6 +71,7 @@ app.get('/', (req: Request, res: Response) => {
         pilotRecommendation: 'POST /api/pilot-recommendation',
         redTeam: 'POST /api/red-team',
         generatePdf: 'POST /api/generate-pdf',
+        pushToSalesforce: 'POST /api/push-to-salesforce',
       },
     });
   }

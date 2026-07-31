@@ -14,6 +14,9 @@ export interface AppConfig {
   orchestrateAgentId: string;
   orchestrateEnvironmentId: string;
   orchestrateApiKey: string;
+  salesforceClientId: string;
+  salesforceClientSecret: string;
+  salesforceMyDomainUrl: string;
 }
 
 export const config: AppConfig = {
@@ -28,6 +31,9 @@ export const config: AppConfig = {
   orchestrateAgentId: process.env.ORCHESTRATE_AGENT_ID || '255fce2b-bf14-4c1a-8b55-2633e1ecbbce',
   orchestrateEnvironmentId: process.env.ORCHESTRATE_ENVIRONMENT_ID || 'd6d7e725-8c1b-401f-8bf0-8ebe14c4afcd',
   orchestrateApiKey: process.env.ORCHESTRATE_API_KEY || process.env.WATSONX_API_KEY || '',
+  salesforceClientId: process.env.SALESFORCE_CLIENT_ID || '',
+  salesforceClientSecret: process.env.SALESFORCE_CLIENT_SECRET || '',
+  salesforceMyDomainUrl: process.env.SALESFORCE_MY_DOMAIN_URL || '',
 };
 
 export function validateWatsonxConfig(): void {
