@@ -2,13 +2,17 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Partner Growth Copilot API",
-    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, CRM opportunity management, and full pre-sales package generation using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.",
-    "version": "1.1.0"
+    "description": "Secured REST API providing agentic AI tools for IBM partner pre-sales automation, solution proposal generation, follow-up email drafting, internal technical handoffs, CRM opportunity management, deal coaching, pilot strategy recommendations, red team objection analysis, downloadable PDF exporting, and full pre-sales package generation using IBM watsonx.ai. Supports x-api-key authentication for watsonx Orchestrate.",
+    "version": "1.2.0"
   },
   "servers": [
     {
       "url": "https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud",
       "description": "IBM Cloud Code Engine Production Server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
     }
   ],
   "security": [
@@ -26,7 +30,7 @@
     "/health": {
       "get": {
         "summary": "Check Service Health",
-        "description": "Returns operational status of Partner Growth Copilot. Use this tool to verify service readiness.",
+        "description": "Returns operational status of the Partner Growth Copilot service. Use this tool to verify system availability before starting workflows.",
         "operationId": "health_check",
         "security": [],
         "responses": {
@@ -60,31 +64,14 @@
     "/generate-full-opportunity-package": {
       "post": {
         "summary": "Generate Full Pre-Sales Opportunity Package",
-        "description": "Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step.",
+        "description": "Orchestrates an end-to-end pre-sales workflow. Accepts raw deal context, industry mode, account name, and use case to generate a complete package containing IBM solution proposal blueprint, executive follow-up email, technical handoff summary, CRM opportunity stub, deterministic deal score, and recommended next best actions. Use this tool in watsonx Orchestrate when a partner requests a complete pre-sales deal package in a single step. IMPORTANT FALLBACK BEHAVIOR: If the user says 'don't know', 'just create it', 'skip', or similar, you MUST call this operation immediately with skipclarification=true and mark any unknown fields as 'Not specified'. Do not ask follow-up questions in this state.",
         "operationId": "generate_full_opportunity_package",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  },
-                  "industry": {
-                    "type": "string"
-                  },
-                  "account_name": {
-                    "type": "string"
-                  },
-                  "use_case": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/FullPackageRequest"
               }
             }
           }
@@ -95,126 +82,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "proposal",
-                    "followup_email",
-                    "handoff_summary",
-                    "crm_stub",
-                    "deal_score",
-                    "next_best_actions"
-                  ],
-                  "properties": {
-                    "proposal": {
-                      "type": "object"
-                    },
-                    "followup_email": {
-                      "type": "object"
-                    },
-                    "handoff_summary": {
-                      "type": "object"
-                    },
-                    "crm_stub": {
-                      "type": "object"
-                    },
-                    "deal_score": {
-                      "type": "object"
-                    },
-                    "next_best_actions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/FullPackageResponse"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/score-opportunity": {
-      "post": {
-        "summary": "Score Deal Opportunity Readiness",
-        "description": "Evaluates deal intake context string to calculate a deal readiness score (0-100), identify missing deal parameters, and recommend the optimal sales path.",
-        "operationId": "score_opportunity",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  },
-                  "industry": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Deal score calculated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "score",
-                    "reasoning",
-                    "missing_fields",
-                    "recommended_path",
-                    "next_best_actions"
-                  ],
-                  "properties": {
-                    "score": {
-                      "type": "integer"
-                    },
-                    "reasoning": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "missing_fields": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "recommended_path": {
-                      "type": "string"
-                    },
-                    "next_best_actions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         }
       }
@@ -222,155 +93,272 @@
     "/generate-proposal": {
       "post": {
         "summary": "Generate IBM Solution Proposal",
-        "description": "Analyzes customer requirements and deal context to generate an IBM-centric solution proposal.",
+        "description": "Analyzes customer deal requirements and outputs a structured IBM solution proposal blueprint including recommended architecture, key IBM components, and business outcomes. Use when the user asks specifically for an IBM solution proposal or architecture blueprint.",
         "operationId": "generate_proposal",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/BasicDealInputRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Solution proposal generated successfully"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
+            "description": "IBM solution proposal generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResult"
+                }
+              }
+            }
           }
         }
       }
     },
     "/draft-followup-email": {
       "post": {
-        "summary": "Draft Customer Follow-Up Email",
-        "description": "Drafts a professional, executive-ready customer follow-up email based on customer deal context.",
+        "summary": "Draft Executive Follow-Up Email",
+        "description": "Drafts a professional customer-facing follow-up email summarizing the value proposition and next steps. Use when the user asks for a follow-up email draft or client communication.",
         "operationId": "draft_followup_email",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  },
-                  "proposal": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/EmailInputRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Customer follow-up email drafted successfully"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
+            "description": "Executive email draft generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailResult"
+                }
+              }
+            }
           }
         }
       }
     },
     "/create-handoff-summary": {
       "post": {
-        "summary": "Create Internal Technical Handoff Summary",
-        "description": "Generates an internal technical handoff summary for engineering and delivery teams.",
+        "summary": "Create Technical Handoff Summary",
+        "description": "Creates an internal technical handoff document outlining architecture, implementation steps, and risk mitigation. Use when the user asks for technical handoff or delivery notes.",
         "operationId": "create_handoff_summary",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  },
-                  "proposal": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/BasicDealInputRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Technical handoff summary created successfully"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
+            "description": "Technical handoff summary created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffResult"
+                }
+              }
+            }
           }
         }
       }
     },
     "/create-opportunity-stub": {
       "post": {
-        "summary": "Create CRM Opportunity Stub",
-        "description": "Extracts structured sales deal parameters and creates a CRM opportunity payload.",
+        "summary": "Create CRM Opportunity Record",
+        "description": "Generates structured CRM opportunity fields for Salesforce/HubSpot insertion. Use when the user asks to log an opportunity or create CRM notes.",
         "operationId": "create_opportunity_stub",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "raw_input"
-                ],
-                "properties": {
-                  "raw_input": {
-                    "type": "string"
-                  },
-                  "proposal": {
-                    "type": "string"
-                  },
-                  "customer_name": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/BasicDealInputRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "CRM opportunity payload created successfully"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
+            "description": "CRM opportunity stub created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpportunityResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/score-opportunity": {
+      "post": {
+        "summary": "Evaluate Deal Readiness Score",
+        "description": "Evaluates deal intake completeness and assigns a deal readiness score (0-100), missing fields, and recommended path. Use when the user asks to score a deal or check readiness.",
+        "operationId": "score_opportunity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BasicDealInputRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deal readiness evaluated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealScoreResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deal-coach": {
+      "post": {
+        "summary": "Evaluate Deal Coach Strategic Guidance",
+        "description": "Evaluates deal intake from a senior sales mentor perspective. Use when the user asks for qualification guidance, missing info, deal coaching, or readiness scoring.",
+        "operationId": "deal_coach_analysis",
+        "tags": [
+          "Advanced Analysis"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DealCoachRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deal coach feedback and readiness score generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealCoachResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pilot-recommendation": {
+      "post": {
+        "summary": "Recommend Minimum Viable IBM Pilot",
+        "description": "Analyzes customer deal context and recommends the smallest viable pilot. Use when the user asks for a pilot recommendation, phased rollout, or smallest viable starting point.",
+        "operationId": "pilot_recommendation",
+        "tags": [
+          "Advanced Analysis"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PilotRecommendationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Smallest viable pilot recommendation generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotRecommendationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/red-team": {
+      "post": {
+        "summary": "Surface Red Team Objections & Risks",
+        "description": "Surfaces customer objections, commercial risks, and competitive threats. Use when the user asks for objections, risks, pressure-testing an opportunity, or competitive analysis.",
+        "operationId": "red_team_analysis",
+        "tags": [
+          "Advanced Analysis"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedTeamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Red team analysis generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedTeamResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/generate-pdf": {
+      "post": {
+        "summary": "Generate Downloadable PDF Package",
+        "description": "Generates a styled vector PDF of the full pre-sales opportunity package and returns a direct absolute URL. Use when the user asks for a downloadable PDF, export, print view, or shareable document. Output the display_message or download_url verbatim.",
+        "operationId": "generate_pdf_package",
+        "tags": [
+          "Documents"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePdfRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PDF package generated successfully. Returns JSON metadata with downloadable URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratePdfResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -378,11 +366,63 @@
     "/api/generate-docx": {
       "post": {
         "summary": "Generate Downloadable Word (.docx) Package",
-        "description": "Generates an IBM-styled Word (.docx) document of the full pre-sales opportunity package and returns a direct absolute download URL.",
+        "description": "Generates an IBM-styled Word (.docx) document of the full pre-sales opportunity package and returns a direct absolute download URL. Use when the user requests an editable Word document or .docx package export.",
         "operationId": "generate_docx_package",
+        "tags": [
+          "Documents"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePdfRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Word document package generated successfully"
+            "description": "Word (.docx) package generated successfully. Returns JSON metadata with downloadable URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratePdfResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/push-to-salesforce": {
+      "post": {
+        "summary": "Push Opportunity Stub to Salesforce CRM",
+        "description": "Creates a real Opportunity record in the connected Salesforce org from a generated CRM stub. Use when the user asks to actually log, push, or sync this opportunity into Salesforce.",
+        "operationId": "pushtosalesforce",
+        "tags": [
+          "CRM Integration"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpportunityResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opportunity record created in Salesforce successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushToSalesforceResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -390,11 +430,63 @@
     "/api/chat": {
       "post": {
         "summary": "Unified Conversational Chat & Package Generator",
-        "description": "Unified conversational endpoint handling pre-sales deal package generation and intelligent follow-up Q&A.",
+        "description": "Unified conversational endpoint handling both pre-sales deal package generation and intelligent follow-up Q&A with conversation history context. IMPORTANT FALLBACK BEHAVIOR: Before asking any clarifying questions, extract all available deal details from the conversation history. If the user indicates they want to skip clarification (e.g. 'don't know', 'just create it'), immediately generate the package with known details and mark missing ones as 'Not specified'.",
         "operationId": "unified_chat",
+        "tags": [
+          "Conversational"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "What are the main technical risks for this deal?"
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "conversation_context": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Chat response generated successfully"
+            "description": "Chat response generated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "intent": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -406,18 +498,612 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-api-key",
-        "description": "Standard API key header preferred by IBM watsonx Orchestrate tool connections."
+        "description": "Standard API Key header for watsonx Orchestrate."
       },
       "LegacyPgcKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-PGC-KEY",
-        "description": "Legacy custom API key header for backward compatibility."
+        "name": "x-pgc-key",
+        "description": "Legacy API Key header."
       },
       "BearerAuth": {
         "type": "http",
-        "scheme": "bearer",
-        "description": "Standard Authorization Bearer token header."
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "BasicDealInputRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "description": "Raw customer requirements and deal context.",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics for inventory prediction; Budget $100,000; Timeline Q4."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Optional industry mode (retail, manufacturing, healthcare, general).",
+            "example": "retail"
+          }
+        }
+      },
+      "EmailInputRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics; Budget $100,000; Timeline Q4."
+          },
+          "proposal": {
+            "type": "string",
+            "description": "Optional proposal text to reference in email."
+          }
+        }
+      },
+      "FullPackageRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics; Budget $100,000; Timeline Q4."
+          },
+          "industry": {
+            "type": "string",
+            "example": "retail"
+          },
+          "account_name": {
+            "type": "string",
+            "example": "Acme Retail"
+          },
+          "use_case": {
+            "type": "string",
+            "example": "AI inventory demand forecasting"
+          },
+          "conversationhistory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Context from previous chat turns to avoid re-asking questions."
+          },
+          "skipclarification": {
+            "type": "boolean",
+            "description": "Flag indicating the agent should generate the package immediately with known fields and NOT ask clarifying questions."
+          }
+        }
+      },
+      "ProposalResult": {
+        "type": "object",
+        "required": [
+          "proposal",
+          "solution_name",
+          "recommended_ibm_stack",
+          "business_outcomes"
+        ],
+        "properties": {
+          "proposal": {
+            "type": "string"
+          },
+          "solution_name": {
+            "type": "string"
+          },
+          "recommended_ibm_stack": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "business_outcomes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "EmailResult": {
+        "type": "object",
+        "required": [
+          "subject",
+          "email_body"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "email_body": {
+            "type": "string"
+          }
+        }
+      },
+      "HandoffResult": {
+        "type": "object",
+        "required": [
+          "summary",
+          "next_steps",
+          "risks"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "next_steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OpportunityResult": {
+        "type": "object",
+        "required": [
+          "opportunity_name",
+          "account_name",
+          "stage",
+          "notes",
+          "estimated_value"
+        ],
+        "properties": {
+          "opportunity_name": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "estimated_value": {
+            "type": "string"
+          }
+        }
+      },
+      "DealScoreResult": {
+        "type": "object",
+        "required": [
+          "score",
+          "reasoning",
+          "missing_fields",
+          "recommended_path"
+        ],
+        "properties": {
+          "score": {
+            "type": "integer"
+          },
+          "reasoning": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended_path": {
+            "type": "string"
+          },
+          "next_best_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FullPackageResponse": {
+        "type": "object",
+        "required": [
+          "proposal",
+          "followup_email",
+          "handoff_summary",
+          "crm_stub",
+          "deal_score",
+          "next_best_actions"
+        ],
+        "properties": {
+          "proposal": {
+            "$ref": "#/components/schemas/ProposalResult"
+          },
+          "followup_email": {
+            "$ref": "#/components/schemas/EmailResult"
+          },
+          "handoff_summary": {
+            "$ref": "#/components/schemas/HandoffResult"
+          },
+          "crm_stub": {
+            "$ref": "#/components/schemas/OpportunityResult"
+          },
+          "deal_score": {
+            "$ref": "#/components/schemas/DealScoreResult"
+          },
+          "next_best_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DealCoachRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics; Budget $100,000; Timeline Q4."
+          },
+          "industry": {
+            "type": "string",
+            "example": "retail"
+          }
+        }
+      },
+      "DealCoachResponse": {
+        "type": "object",
+        "required": [
+          "readiness_score",
+          "readiness_label",
+          "missing_information",
+          "risks",
+          "next_best_actions",
+          "coaching_notes"
+        ],
+        "properties": {
+          "readiness_score": {
+            "type": "integer",
+            "example": 75
+          },
+          "readiness_label": {
+            "type": "string",
+            "example": "Promising"
+          },
+          "missing_information": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Decision-maker name and title",
+              "Technical integration team contacts"
+            ]
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Scope may be too broad for Q4 completion"
+            ]
+          },
+          "next_best_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Schedule executive sponsor sync",
+              "Define pilot success criteria"
+            ]
+          },
+          "coaching_notes": {
+            "type": "string",
+            "example": "Strong deal structure with clear budget. Focus on identifying the technical decision maker to accelerate contract approval."
+          }
+        }
+      },
+      "PilotRecommendationRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics; Budget $100,000; Timeline Q4."
+          },
+          "industry": {
+            "type": "string",
+            "example": "retail"
+          }
+        }
+      },
+      "PilotRecommendationResponse": {
+        "type": "object",
+        "required": [
+          "pilot_name",
+          "smallest_viable_pilot",
+          "recommended_ibm_products",
+          "estimated_scope",
+          "success_kpis",
+          "expansion_path",
+          "quick_wins"
+        ],
+        "properties": {
+          "pilot_name": {
+            "type": "string",
+            "example": "IBM watsonx Inventory AI Discovery Pilot"
+          },
+          "smallest_viable_pilot": {
+            "type": "string",
+            "example": "4-week pilot deploying watsonx.ai inventory forecasting model for top 50 SKUs."
+          },
+          "recommended_ibm_products": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "IBM watsonx.ai",
+              "IBM watsonx Orchestrate"
+            ]
+          },
+          "estimated_scope": {
+            "type": "object",
+            "properties": {
+              "duration_weeks": {
+                "type": "integer",
+                "example": 4
+              },
+              "team_size": {
+                "type": "integer",
+                "example": 3
+              },
+              "estimated_cost_usd": {
+                "type": "string",
+                "example": "$30,000 - $45,000"
+              }
+            }
+          },
+          "success_kpis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "90% prediction accuracy on test SKUs",
+              "2-week implementation time"
+            ]
+          },
+          "expansion_path": {
+            "type": "string",
+            "example": "Expand from top 50 SKUs to full catalog of 10,000+ SKUs across regional distribution centers."
+          },
+          "quick_wins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Model deployed in sandbox in week 1",
+              "Executive demonstration in week 2"
+            ]
+          }
+        }
+      },
+      "RedTeamRequest": {
+        "type": "object",
+        "required": [
+          "raw_input"
+        ],
+        "properties": {
+          "raw_input": {
+            "type": "string",
+            "example": "Customer Acme Retail; Industry Retail; Use case AI analytics; Budget $100,000; Timeline Q4."
+          },
+          "industry": {
+            "type": "string",
+            "example": "retail"
+          }
+        }
+      },
+      "RedTeamResponse": {
+        "type": "object",
+        "required": [
+          "likely_objections",
+          "commercial_risks",
+          "technical_risks",
+          "competitive_threats",
+          "deal_breakers"
+        ],
+        "properties": {
+          "likely_objections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "objection": {
+                  "type": "string",
+                  "example": "Why IBM watsonx over Azure OpenAI?"
+                },
+                "stakeholder": {
+                  "type": "string",
+                  "example": "CTO"
+                },
+                "severity": {
+                  "type": "string",
+                  "example": "HIGH"
+                },
+                "suggested_response": {
+                  "type": "string",
+                  "example": "IBM watsonx provides enterprise governance, hybrid cloud deployment, and zero data leakage guarantees that hyperscalers cannot match."
+                }
+              }
+            }
+          },
+          "commercial_risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Contract negotiation delay beyond Q4 cutoff"
+            ]
+          },
+          "technical_risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Legacy ERP inventory API latency"
+            ]
+          },
+          "competitive_threats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Azure OpenAI Service",
+              "AWS Bedrock"
+            ]
+          },
+          "deal_breakers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "No dedicated technical sponsor assigned"
+            ]
+          }
+        }
+      },
+      "GeneratePdfRequest": {
+        "type": "object",
+        "properties": {
+          "proposal": {
+            "$ref": "#/components/schemas/ProposalResult"
+          },
+          "followup_email": {
+            "$ref": "#/components/schemas/EmailResult"
+          },
+          "handoff_summary": {
+            "$ref": "#/components/schemas/HandoffResult"
+          },
+          "crm_stub": {
+            "$ref": "#/components/schemas/OpportunityResult"
+          },
+          "deal_score": {
+            "$ref": "#/components/schemas/DealScoreResult"
+          }
+        }
+      },
+      "GeneratePdfResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "file_name",
+          "download_url",
+          "display_message",
+          "download_markdown",
+          "expires_in_minutes",
+          "summary"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "file_name": {
+            "type": "string",
+            "example": "partner-growth-package-1722220000_a1b2c3d4.pdf"
+          },
+          "download_url": {
+            "type": "string",
+            "description": "Direct absolute HTTPS URL to download the PDF document.",
+            "example": "https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf"
+          },
+          "display_message": {
+            "type": "string",
+            "description": "Safe human-readable plain text display message containing the raw absolute URL.",
+            "example": "Your PDF package is ready. Direct Download URL: https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf"
+          },
+          "download_markdown": {
+            "type": "string",
+            "description": "Markdown link snippet for chat interfaces supporting markdown links.",
+            "example": "[Download PDF Package](https://partner-growth.2csujuhkf3ha.ca-tor.codeengine.appdomain.cloud/downloads/partner-growth-package-1722220000_a1b2c3d4.pdf)"
+          },
+          "expires_in_minutes": {
+            "type": "integer",
+            "example": 60
+          },
+          "summary": {
+            "type": "string",
+            "example": "PDF package generated successfully. Direct download link generated."
+          }
+        }
+      },
+      "PushToSalesforceResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "salesforceopportunityid",
+          "salesforceurl"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "salesforceopportunityid": {
+            "type": "string",
+            "example": "006ak00000XyZ12AAV"
+          },
+          "salesforce_opportunity_id": {
+            "type": "string",
+            "example": "006ak00000XyZ12AAV"
+          },
+          "salesforceurl": {
+            "type": "string",
+            "example": "https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view"
+          },
+          "salesforce_url": {
+            "type": "string",
+            "example": "https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view"
+          },
+          "account_id": {
+            "type": "string",
+            "example": "001ak00000AbC34AAW"
+          },
+          "display_message": {
+            "type": "string",
+            "example": "Successfully created Salesforce Opportunity 'IBM Pre-Sales Opportunity' (ID: 006ak00000XyZ12AAV). Direct URL: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view"
+          }
+        }
       }
     }
   }

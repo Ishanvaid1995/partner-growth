@@ -770,5 +770,5 @@ components:
           example: 001ak00000AbC34AAW
         display_message:
           type: string
-          example: Successfully created Salesforce Opportunity "IBM Pre-Sales Opportunity" (ID: 006ak00000XyZ12AAV). Direct URL: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view
+          example: "Successfully created Salesforce Opportunity 'IBM Pre-Sales Opportunity' (ID: 006ak00000XyZ12AAV). Direct URL: https://orgfarm-b9b252e10e-dev-ed.develop.my.salesforce.com/lightning/r/Opportunity/006ak00000XyZ12AAV/view"
 
